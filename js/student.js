@@ -1,16 +1,33 @@
 /* 學生平板 */
 const qs = new URLSearchParams(location.search);
-let CODE = (qs.get("c") || LS.get("lesson-code", "") || "").replace(/\D/g, "");
+let CODE = (qs.get("c") || "").replace(/\D/g, "");
+let KEY = (qs.get("k") || "").trim();
+if (KEY) LS.set("lesson-class", KEY); else KEY = qs.get("c") ? "" : LS.get("lesson-class", "");
+if (!CODE && !KEY) CODE = (LS.get("lesson-code", "") || "").replace(/\D/g, "");
 let DEVICE = LS.get("lesson-device", null);
 if (!DEVICE) { DEVICE = uid(); LS.set("lesson-device", DEVICE); }
 
 const S = {
-  phase: CODE ? "loading" : "code",
+  phase: CODE || KEY ? "loading" : "code",
   msg: "", seatInput: "", codeInput: "",
   seat: null, group: null, session: null, mine: [], grp: [], voices: [],
   local: {}, status: {}, linger: null, net: true, lastPage: null, flip: {}
 };
 const app = document.getElementById("app");
+
+/* ---------- 固定的班級 QR code：找這個班目前正在上的課 ---------- */
+let findTimer = null, lastFind = 0;
+async function findClass() {
+  clearTimeout(findTimer);
+  lastFind = Date.now();
+  const r = await rpc("lesson_find", { p_key: KEY });
+  if (r && r.ok && r.code) {
+    if (r.code !== CODE) { CODE = r.code; LS.set("lesson-code", CODE); S.phase = "loading"; S.msg = ""; render(true); }
+    poll(); return;
+  }
+  if (r && r.ok && !r.code) { S.phase = "waitclass"; render(true); }
+  findTimer = setTimeout(findClass, 3000);
+}
 
 /* ---------- 輪詢 ---------- */
 let pollTimer = null;
@@ -20,6 +37,7 @@ async function poll() {
   const r = await rpc("lesson_poll", { p_code: CODE, p_device: DEVICE });
   if (!r || r.ok === false) {
     if (r && r.error === "NO_SESSION") {
+      if (KEY) { CODE = ""; findClass(); return; }
       S.phase = "code"; S.msg = "找不到課堂代碼 " + CODE + "，請確認投影上的代碼。"; CODE = ""; LS.del("lesson-code"); render(true); return;
     }
     S.net = false; renderLive(); schedule(3000); return;
@@ -41,6 +59,7 @@ async function poll() {
   if (S.linger && !pstate(S.session.state, S.linger).open) S.linger = null;
   render(force);
   schedule(document.hidden ? 5000 : 1500);
+  if (KEY && Date.now() - lastFind > 20000) { lastFind = Date.now(); rpc("lesson_find", { p_key: KEY }).then(f => { if (f && f.ok && f.code && f.code !== CODE) { CODE = f.code; LS.set("lesson-code", CODE); S.phase = "loading"; S.local = {}; render(true); poll(); } }); }
 }
 function schedule(ms) { clearTimeout(pollTimer); pollTimer = setTimeout(poll, ms); }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
@@ -192,6 +211,7 @@ setInterval(renderLive, 500);
 
 function view() {
   if (S.phase === "code") return codeView();
+  if (S.phase === "waitclass") return `<div class="st-main"><div class="login-box"><h1>等老師開課</h1><p>老師開始上課後，這個畫面會自動進入，不用重新掃描。</p><p class="muted small">班級代號 ${esc(KEY)}</p></div></div>`;
   if (S.phase === "loading") return `<div class="st-main"><p class="muted">連線中…</p></div>`;
   if (S.phase === "seat") return seatView();
   if (S.phase === "pending") return `<div class="st-main"><div class="login-box"><h1>等老師確認</h1><p>${S.seat} 號已經在另一台平板登入。老師按「允許」後，這台就能開始用，之前送出的作答都還在。</p><p class="muted small">如果你輸錯座號，請舉手請老師幫你登出這台。</p></div></div>`;
@@ -563,7 +583,7 @@ document.addEventListener("click", async e => {
   if (!t || t.disabled) return;
   const a = t.dataset.act;
   if (a === "code") { CODE = S.codeInput; LS.set("lesson-code", CODE); S.msg = ""; S.phase = "loading"; render(true); poll(); return; }
-  if (a === "changecode") { CODE = ""; LS.del("lesson-code"); S.phase = "code"; S.msg = ""; render(true); return; }
+  if (a === "changecode") { CODE = ""; KEY = ""; LS.del("lesson-code"); LS.del("lesson-class"); S.phase = "code"; S.msg = ""; render(true); return; }
   if (a === "join") {
     t.disabled = true;
     const r = await rpc("lesson_join", { p_code: CODE, p_seat: +S.seatInput, p_device: DEVICE });
@@ -678,5 +698,5 @@ function refreshButtons() {
 function toast(msg) { const d = document.createElement("div"); d.className = "toast"; d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
 
 render(true);
-if (CODE) poll();
+if (KEY) findClass(); else if (CODE) poll();
 Object.values(IMAGES).forEach(src => { const i = new Image(); i.src = src; });

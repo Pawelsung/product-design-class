@@ -21,6 +21,7 @@ const gids = () => groupIds(groupsMap());
 const repOf = (slot, g) => T.session.reps && T.session.reps[slot] && T.session.reps[slot][g];
 const aiOf = g => T.session.ai_ops && T.session.ai_ops[g];
 const activeSeats = () => [...new Set(T.devices.filter(d => d.status === "active").map(d => d.seat))];
+const studentLink = () => st().classKey ? STUDENT_URL() + "?k=" + encodeURIComponent(st().classKey) : STUDENT_URL() + "?c=" + T.session.code;
 const productOf = g => (st().products && st().products[g]) || "";
 
 /* ---------- 啟動 ---------- */
@@ -144,6 +145,7 @@ function sessionsView() {
     h += `<h2>開新的一堂課</h2>
       <div><label class="lab">節次</label><div class="pillset">${[1, 2].map(n => `<button data-act="flesson" data-v="${n}" aria-pressed="${f.lesson === n}">${esc(LESSONS[n].title)}</button>`).join("")}</div></div>
       <div><label class="lab" for="f-label">班級</label><input type="text" id="f-label" data-bind="form" data-k="label" value="${esc(f.label)}"></div>
+      <div><label class="lab" for="f-key">班級代號（印在桌上的 QR code 會用到，同一班每節都用一樣的）</label><input type="text" id="f-key" data-bind="form" data-k="classKey" value="${esc(f.classKey)}"></div>
       <div><label class="lab" for="f-seats">全班人數（座號 1 到）</label><input type="number" id="f-seats" data-bind="form" data-k="seats" value="${f.seats}"></div>
       <div><label class="lab">分組（每組一行，寫座號，用逗號分開）</label><textarea id="f-groups" data-bind="form" data-k="groupsText" style="min-height:160px;font-family:var(--mono)">${esc(roster)}</textarea><p class="small muted">預設：第 1～4 組各 5 人，第 5、6 組各 4 人。改好會記在這支手機，下次開課直接沿用。</p></div>`;
     if (f.lesson === 2) {
@@ -330,13 +332,14 @@ function loginTab() {
   const devs = T.devices.filter(d => d.status !== "revoked").sort((x, y) => x.seat - y.seat);
   h += `<div class="t-sec"><h3>平板（輸錯座號時，按「登出這台」讓學生重新輸入）</h3><div class="t-list">${devs.map(d => `<div class="it"><span><b>${d.seat} 號</b>　<span class="small muted">${d.status === "pending" ? "等待允許" : "最後連線 " + fmtClock(d.seen_ms)}</span></span>
     <span class="row">${d.status === "pending" ? `<button class="btn go sm" data-act="dev" data-d="${d.device}" data-v="allow">允許</button>` : ""}<button class="btn ghost sm" data-act="dev" data-d="${d.device}" data-v="logout">登出這台</button></span></div>`).join("") || `<p class="small muted">還沒有平板登入。</p>`}</div></div>`;
-  h += `<div class="soft small">學生網址：<span class="mono">${esc(STUDENT_URL())}?c=${T.session.code}</span></div>`;
+  h += `<div class="soft small">學生網址：<span class="mono">${esc(studentLink())}</span><br>也可以打開學生網址，輸入課堂代碼 <b class="mono">${T.session.code}</b>。</div>`;
   return h;
 }
 function dataTab() {
   const p = curP();
   return `<div class="t-sec"><h3>投影</h3><a class="btn primary block" href="?s=${T.sid}&mode=screen" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">在這台開投影畫面</a>
     <p class="small muted">在教室電腦打開老師網址、登入後點這裡，按 F11 全螢幕。</p></div>
+    <div class="t-sec"><h3>桌上的 QR code</h3>${st().classKey ? `<a class="btn block" href="qr.html?k=${encodeURIComponent(st().classKey)}&l=${encodeURIComponent(T.session.class_label)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">打開列印頁（班級代號 ${esc(st().classKey)}）</a><p class="small muted">同一個班每節都用同一張，印一次就好。</p>` : `<p class="small muted">這堂課開課時沒有填班級代號，所以沒有固定的 QR code。下次開課時填上就有了。</p>`}</div>
     <div class="t-sec"><h3>下載作答資料（CSV，可用 Excel 開）</h3><button class="btn" data-act="csv" data-v="${p.id}">下載這一頁（${p.id}）</button><button class="btn" data-act="csv" data-v="">下載這一節全部</button></div>
     <div class="t-sec"><h3>課堂</h3><button class="btn ghost" data-act="sessions">回課堂清單</button><button class="btn stop" data-act="close">結束這堂課（學生不能再登入）</button></div>
     <div class="t-sec"><h3>老師 PIN</h3><div class="row"><input type="password" id="newpin" inputmode="numeric" placeholder="新 PIN（至少 6 碼）" style="flex:1;min-width:0"><button class="btn" data-act="setpin">更改</button></div></div>`;
@@ -393,7 +396,7 @@ function screenView() {
   return h;
 }
 function loginScreen(p) {
-  const url = STUDENT_URL() + "?c=" + T.session.code;
+  const url = studentLink();
   const a = activeSeats();
   let qr = "";
   try { const q = qrcode(0, "M"); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true }); } catch (e) { qr = ""; }
@@ -557,7 +560,7 @@ document.addEventListener("click", async e => {
     case "logout": logout(); break;
     case "newform": {
       const saved = LS.get("lesson-roster", null);
-      T.form = { lesson: 1, label: LS.get("lesson-label", "九年 16 班"), seats: saved ? saved.seats : 28, groupsText: saved ? saved.text : rosterText(defaultGroups(28, [5, 5, 5, 5, 4, 4])), from: "" };
+      T.form = { lesson: 1, label: LS.get("lesson-label", "九年 16 班"), seats: saved ? saved.seats : 28, groupsText: saved ? saved.text : rosterText(defaultGroups(28, [5, 5, 5, 5, 4, 4])), from: "", classKey: LS.get("lesson-classkey", "916") };
       render(true); break;
     }
     case "cancelform": T.form = null; render(true); break;
@@ -567,13 +570,13 @@ document.addEventListener("click", async e => {
       if (parsed.error) return;
       t.disabled = true;
       const roles = buildRoles(parsed.map, f.lesson);
-      const state = { page: LESSONS[f.lesson].pages[0].id, pages: {} };
+      const state = { page: LESSONS[f.lesson].pages[0].id, pages: {}, classKey: (f.classKey || "").trim() };
       if (f.lesson === 2 && f.from) {
         const r = await rpc("lesson_teacher_poll", { p_token: T.token, p_id: f.from, p_with_private: false });
         if (r && r.ok) { state.products = {}; (r.responses || []).filter(x => x.page === "1-8" && x.owner[0] === "g").forEach(x => { const d = x.sent || x.data; if (d && d.product) state.products[x.owner.slice(1)] = productText(d.product); }); }
       }
       const r = await rpc("lesson_create", { p_token: T.token, p_lesson: f.lesson, p_label: f.label, p_seats: +f.seats, p_groups: parsed.map, p_reps: roles.reps, p_ai: roles.ai, p_state: state });
-      if (r && r.ok) { LS.set("lesson-roster", { seats: +f.seats, text: f.groupsText }); LS.set("lesson-label", f.label); location.href = "?s=" + r.id; }
+      if (r && r.ok) { LS.set("lesson-roster", { seats: +f.seats, text: f.groupsText }); LS.set("lesson-label", f.label); LS.set("lesson-classkey", (f.classKey || "").trim()); location.href = "?s=" + r.id; }
       else { toast("建立失敗，請再試一次"); t.disabled = false; }
       break;
     }
