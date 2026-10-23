@@ -114,7 +114,7 @@ function setVal(p, part, v) {
 
 function fillDefaults(p, v) {
   if (!v || typeof v !== "object") return;
-  if (p.type === "voice" && !v.product) v.product = product();
+  if (p.type === "voice" && !v.customProduct && !v.product) v.product = product();
   if (p.type === "sort") { if (!Array.isArray(v.order)) v.order = [null, null, null, null, null, null]; if (!Array.isArray(v.desc)) v.desc = ["", "", "", "", "", ""]; }
   if (p.type === "judge" && !Array.isArray(v.rows)) v.rows = p.rows.map(() => ({}));
 }
@@ -432,16 +432,16 @@ function gloveView(p) {
 /* 2-6 心聲卡 */
 function voiceView(p) {
   const v = val(p), prod = voiceProduct(v, product()), ed = isEditor(p);
-  const qs2 = v.unused ? p.unused : p.used;
+  const qs2 = VOICE_GUIDES[v.unused ? 1 : 0];
   const a = v.a || [], example = VOICE_EXAMPLES[prod];
-  const choices = [...new Set([product(), ...PRODUCTS].filter(Boolean))];
-  let h = `<section class="card stack"><h2>先選你要分享的產品</h2><p>選一項你用過的東西，回想一次具體經驗。若沒用過，可以寫你看過的情況。這張卡會連同產品名稱帶到下一頁。</p><div class="pillset">${choices.map(name => `<button data-act="voiceproduct" data-v="${esc(name)}" aria-pressed="${prod === name}" ${dis(ed)}>${esc(name)}</button>`).join("")}</div>${product() ? `<p class="small muted">本組改造產品：${esc(product())}。優先分享這項產品；也可選其他熟悉的產品，提供比較。</p>` : `<p class="small muted">小組還沒指定產品也能先選一項，寫自己的使用經驗。</p>`}</section>`;
-  if (!prod) return h + `<div class="banner wait">先按上方一個產品，例如「水壺」或「書包」，就會出現題目和例子。</div>`;
+  const choices = [...new Set([product(), ...Object.keys(VOICE_EXAMPLES)].filter(Boolean))];
+  let h = `<section class="card stack"><h2>先選你要分享的產品</h2><p>選一項你用過的東西，回想一次具體經驗。若沒用過，可以寫你看過的情況。這張卡會連同產品名稱帶到下一頁。</p><div class="pillset">${choices.map(name => `<button data-act="voiceproduct" data-v="${esc(name)}" aria-pressed="${!v.customProduct && prod === name}" ${dis(ed)}>${esc(name)}</button>`).join("")}<button data-act="voicecustom" aria-pressed="${!!v.customProduct}" ${dis(ed)}>＋ 自訂產品</button></div>${v.customProduct ? `<label class="lab" for="voice-custom">你想分享什麼產品？</label><input id="voice-custom" type="text" maxlength="40" data-bind="voicecustom" placeholder="例如：腳踏車、安全帽、訂書機……" value="${esc(v.product || "")}" ${dis(ed)}><p class="small muted">輸入名稱後點一下欄位外，即可繼續填寫。</p>` : ""}${product() ? `<p class="small muted">本組改造產品：${esc(product())}。優先分享這項產品；也可選其他熟悉的產品，提供比較。</p>` : `<p class="small muted">小組還沒指定產品也能先選一項，寫自己的使用經驗。</p>`}</section>`;
+  if (!prod) return h + `<div class="banner wait">選一項產品，或按「自訂產品」輸入名稱，即可開始分享。</div>`;
   h += `<div class="banner info"><b>這張心聲卡的產品：${esc(prod)}</b></div>`;
   h += `<p>請寫自己的經驗，不要照抄例子。每題一句即可；投影不顯示座號。</p>`;
   if (example) h += `<details class="soft"><summary>看「${esc(prod)}」的完整填寫例子</summary><ol>${example.map(t => `<li>${esc(t)}</li>`).join("")}</ol></details>`;
   h += `<label class="row"><input type="checkbox" id="v-unused" data-act="unused" ${v.unused ? "checked" : ""} ${dis(ed)}> 我沒用過「${esc(prod)}」，改寫觀察或想問的問題</label>`;
-  h += qs2.map((q, i) => `<div><label class="lab" for="v-${i}">${i + 1}. ${esc(fillProduct(q, prod))}${v.unused && i === 2 ? `<span class="chip warn">這一題是猜測，還要查證</span>` : ""}</label><textarea id="v-${i}" data-bind="voice" data-i="${i}" placeholder="${esc(v.unused ? ["例：我看過同學在……", "例：我想問使用者……", "例：我猜他在意……，但還沒確認"][i] : example ? "例如：" + example[i] : "寫出一次具體經驗")}" ${dis(ed)}>${esc(a[i] || "")}</textarea></div>`).join("");
+  h += qs2.map((q, i) => `<div><label class="lab" for="v-${i}">${i + 1}. ${esc(q)}${v.unused && i === 2 ? `<span class="chip warn">這一題是猜測，還要查證</span>` : ""}</label><textarea id="v-${i}" data-bind="voice" data-i="${i}" placeholder="${esc(v.unused ? ["例：我看過同學在……", "例：我想問使用者……", "例：我猜他在意……，但還沒確認"][i] : ["當時我在……，想要……", "操作到……時，發生……，讓我……", "我希望在這個情況下，能夠……"][i])}" ${dis(ed)}>${esc(a[i] || "")}</textarea></div>`).join("");
   h += `<div class="row"><button class="btn go" data-act="send" ${dis(ed && [0, 1, 2].every(i => (a[i] || "").trim()))}>送出「${esc(prod)}」心聲卡</button>${statusBox(p)}</div>`;
   return h;
 }
@@ -622,7 +622,8 @@ document.addEventListener("click", async e => {
     case "jv": { v.rows = v.rows || []; v.rows[+t.dataset.i] = Object.assign({}, v.rows[+t.dataset.i], { v: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break; }
     case "prod": v.product = Object.assign({}, v.product, { choice: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break;
     case "glove": { const k = "r" + t.dataset.r; v[k] = Object.assign({}, v[k], { ["a" + t.dataset.i]: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break; }
-    case "voiceproduct": { const next = Object.assign({}, v, { product: t.dataset.v }); setVal(p, null, next); queueDraft(p); render(true); break; }
+    case "voicecustom": setVal(p, null, Object.assign({}, v, { customProduct: true, product: "" })); queueDraft(p); render(true); break;
+    case "voiceproduct": { const next = Object.assign({}, v, { product: t.dataset.v, customProduct: false }); setVal(p, null, next); queueDraft(p); render(true); break; }
     case "unused": v.unused = t.checked; setVal(p, null, v); queueDraft(p); render(true); break;
     case "draw": {
       t.disabled = true;
@@ -664,6 +665,7 @@ document.addEventListener("input", e => {
   const v = val(p);
   fillDefaults(p, v);
   switch (b) {
+    case "voicecustom": v.product = t.value; break;
     case "wall": v.text = t.value; break;
     case "sortdesc": v.desc[+t.dataset.i] = t.value; break;
     case "jbasis": v.rows[+t.dataset.i] = Object.assign({}, v.rows[+t.dataset.i], { basis: t.value }); break;
@@ -688,7 +690,7 @@ document.addEventListener("input", e => {
   queueDraft(p, part);
   if (t.tagName === "SELECT") render(true); else refreshButtons();
 });
-document.addEventListener("change", e => { if (e.target.tagName === "SELECT" && e.target.dataset.bind) { /* input 已處理 */ } });
+document.addEventListener("change", e => { if (e.target.dataset.bind === "voicecustom") { render(true); return; } if (e.target.tagName === "SELECT" && e.target.dataset.bind) { /* input 已處理 */ } });
 /* 打字時不重畫整頁，只更新送出按鈕能不能按 */
 function refreshButtons() {
   if (composing) return;
