@@ -25,7 +25,7 @@ const ROLE_CARDS = [
 const ROLE_NOTE = "這是設想的情境，幫我們想出要再確認的需求，不代表這類人都這樣。";
 const IMAGES = {
   meme1: "img/meme1.png", meme2: "img/meme2.png", meme3: "img/meme3.png", meme6: "img/meme6.png",
-  meme7: "img/meme7.png", meme8: "img/meme8.png", meme9: "img/meme9.png", meme10: "img/meme10.png",
+  meme7: "img/meme7.png", meme8: "img/usb3.svg", usbc: "img/usbc.svg", meme9: "img/meme9.png", meme10: "img/meme10.png",
   meme11: "img/meme11.png", meme12: "img/meme12.png"
 };
 const GLOVE_ACTIONS = [
@@ -59,7 +59,7 @@ const LESSONS = {
       { id: "1-1a", type: "vote", time: "0–4 分", title: "這是誰的問題？", caption: "珍珠卡在吸管裡", img: "meme7", options: ["使用者的問題", "設計的問題"] },
       { id: "1-1b", type: "vote", time: "0–4 分", title: "這是誰的問題？", caption: "手搖飲：期望 vs 現實", img: "meme1", options: ["使用者的問題", "設計的問題"] },
       { id: "1-1c", type: "vote", time: "0–4 分", title: "這是誰的問題？", caption: "無線耳機又掉一隻", img: "meme2", options: ["使用者的問題", "設計的問題"] },
-      { id: "1-1d", type: "vote", time: "0–4 分", title: "這是誰的問題？", caption: "USB 為什麼要轉三次？", img: "meme8", options: ["使用者的問題", "設計的問題"] },
+      { id: "1-1d", type: "vote", time: "0–4 分", title: "這是誰的問題？", caption: "USB 為什麼要轉三次？", img: "meme8", revealImg: "usbc", revealCaption: "後來的 USB-C：正反都能插", options: ["使用者的問題", "設計的問題"] },
       { id: "1-1e", type: "vote", time: "0–4 分", title: "這是誰的問題？", caption: "這扇門到底要推還是拉？", img: "meme3", options: ["使用者的問題", "設計的問題"] },
       { id: "1-2", type: "wall", time: "4–6 分", title: "你最崩潰的一次使用經驗", sub: "課本 p.32：如果可以改造它，你會怎麼設計？",
         prompt: "寫一句你用東西最崩潰的一次", placeholder: "例如：什麼東西、發生什麼事", max: 80 },

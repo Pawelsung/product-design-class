@@ -349,3 +349,6 @@ body.screen .sc:not(.sc-cover) { background-color: #FBFCFB; background-image: li
 .st-top { box-shadow: 0 3px 0 var(--wood); }
 .t-head { box-shadow: 0 3px 0 var(--wood); }
 .sc-top { border-bottom-color: var(--gold); }
+.sc-imgwrap > img { min-width: 0; flex: 0 1 auto; max-width: calc(100% - 33vw); align-self: center; }
+.sc-imgwrap .side { flex: 0 0 30vw; }
+.sc-imgwrap .side .sc-big:first-child { line-height: 1.35; }

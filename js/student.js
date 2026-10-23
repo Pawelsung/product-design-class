@@ -294,6 +294,7 @@ function voteView(p) {
   h += statusBox(p);
   const s = ps(p);
   if (p.lines && s.step) h += `<div class="stack">${p.lines.slice(0, s.step).map(l => `<div class="banner ok">${esc(l)}</div>`).join("")}</div>`;
+  if (p.revealImg && s.published) h += `<h2 style="font-size:1.15rem">${esc(p.revealCaption || "")}</h2>${img(p.revealImg)}`;
   return h;
 }
 function wallView(p) {

@@ -432,7 +432,8 @@ function screenBody(p, x) {
       if (p.intro3) {
         return `<div class="sc-defs">${p.intro3.map(([a, b]) => `<div class="sc-def"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("")}</div><div class="sc-hint">${esc(p.question)}</div>${result}${x.step ? `<ul class="sc-lines">${p.lines.slice(0, x.step).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}`;
       }
-      return `<div class="sc-imgwrap"><img src="${IMAGES[p.img]}" alt=""><div class="side">${p.caption ? `<div class="sc-big">${esc(p.caption)}</div>` : ""}${p.intro ? `<div class="sc-hint" style="font-size:1.25vw">${esc(p.intro)}</div>` : ""}${p.question ? `<div class="sc-big" style="font-size:1.7vw">${esc(p.question)}</div>` : ""}${result}</div></div>`;
+      const mainImg = x.published && p.revealImg ? p.revealImg : p.img;
+      return `<div class="sc-imgwrap"><img src="${IMAGES[mainImg]}" alt=""><div class="side">${p.caption ? `<div class="sc-big">${esc(x.published && p.revealCaption ? p.revealCaption : p.caption)}</div>` : ""}${p.intro ? `<div class="sc-hint" style="font-size:1.25vw">${esc(p.intro)}</div>` : ""}${p.question ? `<div class="sc-big" style="font-size:1.7vw">${esc(p.question)}</div>` : ""}${result}</div></div>`;
     }
     case "wall": {
       const notes = personResponses(T.responses, p.id).filter(r => r.sent && !r.hidden && (r.sent.text || "").trim()).sort((a, b) => a.sent_ms - b.sent_ms);
