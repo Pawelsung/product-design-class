@@ -164,3 +164,10 @@ function parseAILines(raw) {
 function fillProduct(text, product) { return String(text).replace(/〔產品〕/g, product || "你們的產品"); }
 
 function csvEscape(v) { const s = v === null || v === undefined ? "" : typeof v === "string" ? v : JSON.stringify(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+
+// 只在視窗內呈現迷因的其中一欄，同時提供該欄的替代文字。
+function panelImage(p, state) {
+  const side = state.panel === 1 ? 1 : 0;
+  return `<figure class="meme-panel"><div class="meme-crop side-${side}"><img src="${IMAGES[p.img]}" alt="${esc(p.panels[side])}"></div><figcaption>${esc(p.panels[side])}（${side + 1}/2）</figcaption></figure>`;
+}
+function gloveCanPublish(x) { return x.round === 2 && x.phase === "r2" && x.ended && !x.open; }

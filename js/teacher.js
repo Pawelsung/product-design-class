@@ -77,11 +77,11 @@ const act = {
   open: id => patchState(s => { const x = pg(s, id); x.open = true; x.ended = false; x.openedAt = x.openedAt || Clock.now(); }),
   end: id => patchState(s => { const x = pg(s, id); x.open = false; x.ended = true; }),
   reopen: id => patchState(s => { const x = pg(s, id); x.open = true; x.ended = false; x.published = false; x.openedAt = x.openedAt || Clock.now(); }),
-  publish: id => patchState(s => { const x = pg(s, id); x.published = !x.published; if (x.published) { x.open = false; x.ended = true; } }),
+  publish: id => patchState(s => { const x = pg(s, id); if (id === "2-2" && !x.published && !gloveCanPublish(x)) return; x.published = !x.published; if (x.published) { x.open = false; x.ended = true; } }),
   step: (id, n) => patchState(s => { pg(s, id).step = n; }),
   timer: sec => patchState(s => { s.timer = sec ? { end: Clock.now() + sec * 1000, total: sec } : null; }),
   glove: phase => patchState(s => {
-    const x = pg(s, "2-2");
+    const x = pg(s, "2-2"); x.published = false;
     if (phase === "r1") { x.open = true; x.ended = false; x.round = 1; x.phase = "r1"; s.timer = { end: Clock.now() + 45000, total: 45 }; }
     if (phase === "reset") { x.phase = "reset"; s.timer = { end: Clock.now() + 30000, total: 30 }; }
     if (phase === "r2") { x.open = true; x.ended = false; x.round = 2; x.phase = "r2"; s.timer = { end: Clock.now() + 45000, total: 45 }; }
@@ -215,11 +215,13 @@ function controls(p, x) {
   if (p.type === "glove") {
     h += `<div class="t-sec"><h3>手套挑戰</h3><div class="row">
       <button class="btn ${x.phase === "r1" ? "primary" : ""}" data-act="glove" data-v="r1">第一輪（45 秒）</button>
-      <button class="btn ${x.phase === "reset" ? "primary" : ""}" data-act="glove" data-v="reset">恢復道具（30 秒）</button>
+      <button class="btn ${x.phase === "reset" ? "primary" : ""}" data-act="glove" data-v="reset">道具復位・準備第二輪（30 秒）</button>
       <button class="btn ${x.phase === "r2" ? "primary" : ""}" data-act="glove" data-v="r2">第二輪（45 秒）</button></div>
-      <div class="row"><button class="btn ${x.published ? "" : "gold"}" data-act="publish">${x.published ? "收起長條圖" : "公布長條圖"}</button>${x.open ? `<button class="btn stop" data-act="end">結束作答</button>` : ""}</div></div>`;
+      <div class="row"><button class="btn ${x.published ? "" : "gold"}" data-act="publish" ${dis(x.published || gloveCanPublish(x))}>${x.published ? "收起長條圖" : "公布長條圖"}</button>${x.open ? `<button class="btn stop" data-act="end">結束作答</button>` : ""}</div></div>`;
+    h += `<p class="small muted">第二輪結束後，先按「結束作答」，再公布統計。保留填寫與討論時間。</p>`;
     return h;
   }
+  if (p.panels) h += `<div class="row">${p.panels.map((label, i) => `<button class="btn" data-act="panel" data-v="${i}" aria-pressed="${(x.panel || 0) === i}">${esc(label)}</button>`).join("")}</div>`;
   if (answerable(p)) {
     h += `<div class="row">`;
     if (x.open) h += `<button class="btn stop" data-act="end">結束作答</button>`;
@@ -229,10 +231,10 @@ function controls(p, x) {
     h += `</div>`;
   }
   if (p.revealImg) h += `<div class="row"><button class="btn ${x.reveal2 ? "" : "primary"}" data-act="reveal2">${x.reveal2 ? "換回原本的圖" : "解釋時：顯示 " + esc(p.revealCaption)}</button></div>`;
-  const lines = p.type === "reveal" ? p.rows : p.lines;
+  const lines = p.type === "reveal" ? p.rows : p.intro3 ? [...p.intro3, ...p.lines] : p.lines;
   if (lines && lines.length) {
     const n = x.step || 0;
-    const label = p.type === "reveal" ? "揭曉下一列" : p.id === "2-1" ? (n ? "下一行" : "揭曉") : p.id === "2-4" ? "揭曉結果" : "下一行";
+    const label = p.type === "reveal" ? "揭曉下一列" : p.id === "2-1" ? (n ? "下一行" : "揭曉") : p.id === "2-4" ? "揭曉下一個調查線索" : "下一行";
     h += `<div class="row"><button class="btn primary" data-act="step" data-v="${Math.min(lines.length, n + 1)}" ${dis(n < lines.length)}>${label}（${n}/${lines.length}）</button><button class="btn" data-act="step" data-v="${lines.length}">全部揭曉</button>${n ? `<button class="btn ghost sm" data-act="step" data-v="0">收回</button>` : ""}</div>`;
   }
   if (p.type === "cards") h += `<div class="row"><button class="btn ${(x.seg || 1) === 1 ? "primary" : ""}" data-act="seg" data-v="1">第一段：唸卡、抽卡</button><button class="btn ${x.seg === 2 ? "primary" : ""}" data-act="seg" data-v="2">第二段：整理需求</button></div>`;
@@ -433,15 +435,16 @@ function screenBody(p, x) {
       const result = x.published ? bars(p.options, t.counts, t.n)
         : `<div class="sc-opts">${p.options.length <= 2 ? p.options.map(o => `<span>${esc(o)}</span>`).join("") : ""}</div><div class="sc-vcount"><b>${t.n}</b> / ${T.session.seats} 人已投票<span>${x.open ? "投票中，結果等老師公布" : "等老師開始投票"}</span></div>`;
       if (p.intro3) {
-        return `<div class="sc-defs">${p.intro3.map(([a, b]) => `<div class="sc-def"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("")}</div><div class="sc-hint">${esc(p.question)}</div>${result}${x.step ? `<ul class="sc-lines">${p.lines.slice(0, x.step).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}`;
+        return `<div class="sc-defs">${p.intro3.slice(0, x.step || 0).map(([a, b]) => `<div class="sc-def"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("")}</div><div class="sc-hint">${esc(p.question)}</div>${result}${x.step ? `<ul class="sc-lines">${p.lines.slice(0, Math.max(0, x.step - p.intro3.length)).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}`;
       }
       const showReveal = p.revealImg && x.reveal2;
       const mainImg = showReveal ? p.revealImg : p.img;
-      return `<div class="sc-imgwrap"><img src="${IMAGES[mainImg]}" alt=""><div class="side">${p.caption ? `<div class="sc-big">${esc(showReveal ? p.revealCaption : p.caption)}</div>` : ""}${p.intro ? `<div class="sc-hint" style="font-size:1.25vw">${esc(p.intro)}</div>` : ""}${p.question ? `<div class="sc-big" style="font-size:1.7vw">${esc(p.question)}</div>` : ""}${result}</div></div>`;
+      return `<div class="sc-imgwrap">${p.panels ? panelImage(p, x) : mainImg ? `<img src="${IMAGES[mainImg]}" alt="">` : ""}<div class="side">${p.caption ? `<div class="sc-big">${esc(showReveal ? p.revealCaption : p.caption)}</div>` : ""}${p.intro ? `<div class="sc-hint" style="font-size:1.25vw">${esc(p.intro)}</div>` : ""}${p.question ? `<div class="sc-big" style="font-size:1.7vw">${esc(p.question)}</div>` : ""}${result}</div></div>`;
     }
     case "wall": {
       const notes = personResponses(T.responses, p.id).filter(r => r.sent && !r.hidden && (r.sent.text || "").trim()).sort((a, b) => a.sent_ms - b.sent_ms);
       let h = "";
+      if (p.img) h += `<img src="${IMAGES[p.img]}" alt="120 毫升迷你保溫瓶示意圖，非新聞商品照片" style="height:20vh;object-fit:contain">`;
       if (p.source) h += `<div class="sc-sub" style="margin-top:0">${esc(p.source)}</div>`;
       if (p.sub) h += `<div class="sc-hint"><b>${esc(p.sub)}</b>　已貼上 ${notes.length} 張</div>`;
       if (p.lines && x.step) return h + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:2vw;flex:1;min-height:0"><div class="sc-notes">${notes.slice(-12).map(r => `<div class="sc-note">${esc(r.sent.text)}</div>`).join("")}</div><div><div class="sc-big">${esc(p.revealTitle)}</div><ul class="sc-lines" style="padding:0">${p.lines.slice(0, x.step).map((l, i) => `<li>${i + 1}. ${esc(l)}</li>`).join("")}</ul></div></div>`;
@@ -450,6 +453,8 @@ function screenBody(p, x) {
     case "reveal": return `<div class="sc-map"><b class="muted">${esc(p.left)}</b><span></span><b class="muted">${esc(p.right)}</b>${p.rows.map(([a, b], i) => `<span class="l">${esc(a)}</span><span class="arr">→</span><span class="r ${i < (x.step || 0) ? "" : "hid"}">${i < (x.step || 0) ? `${i + 1}　${esc(b)}` : "？"}</span>`).join("")}</div>`;
     case "info": {
       let h = "";
+      if (p.panels) return `<div class="sc-imgwrap">${panelImage(p, x)}</div>`;
+      if (p.lines && !p.img) h += `<ul class="sc-lines">${p.lines.slice(0, x.step || 0).map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;
       if (p.defs) h += `<div class="sc-defs">${STAGES.map((s, i) => `<div class="sc-def"><b><i>${i + 1}</i>${s}</b><span>${esc(DESC_CARDS[DESC_ORDER[i]])}</span></div>`).join("")}</div>`;
       if (p.img && p.lines) return `<div class="sc-imgwrap"><img src="${IMAGES[p.img]}" alt="" style="max-width:45%"><ul class="sc-lines" style="flex:1;padding:0">${p.lines.slice(0, x.step || 0).map(l => `<li>${esc(l)}</li>`).join("")}</ul></div>`;
       if (p.img && p.pair) return `<div class="sc-imgwrap"><img src="${IMAGES[p.img]}" alt="" style="max-width:50%"><div class="side" style="flex:1"><div class="sc-pair" style="grid-template-columns:1fr">${p.pair.map(([a, b]) => `<div><b>${esc(a)}</b>${esc(b)}</div>`).join("")}</div></div></div>`;
@@ -548,13 +553,13 @@ function judgeScreen(p, x) {
 function gloveScreen(x) {
   const round = x.round || 1;
   let h = `<div style="display:grid;grid-template-columns:${x.published ? "minmax(0,.8fr) minmax(0,1.2fr)" : "1fr"};gap:2vw;flex:1;min-height:0"><div class="stack" style="gap:1vw">`;
-  h += `<div class="sc-hint"><b>${x.phase === "reset" ? "恢復道具（30 秒）" : round === 1 ? "第一輪：戴手套，45 秒" : "第二輪：換人，一樣戴手套，一隻手抓著椅背，只能用單手，45 秒"}</b></div>`;
+  h += `<div class="sc-hint"><b>${x.phase === "reset" ? "道具復位・準備第二輪（30 秒）" : round === 1 ? "第一輪：戴手套，45 秒" : "第二輪：換人，一樣戴手套，一隻手抓著椅背，只能用單手，45 秒"}</b></div>`;
   h += `<ul class="sc-lines" style="padding:0">${GLOVE_ACTIONS.map((a, i) => `<li>${i + 1}. ${esc(a)}</li>`).join("")}</ul>`;
-  if (x.phase === "reset") h += `<div class="sc-hint" style="font-size:1.3vw">瓶蓋轉緊、水倒回瓶子、卡片放回夾鏈袋並壓緊、迴紋針放回桌上</div>`;
+  if (x.phase === "reset") h += `<div class="sc-hint" style="font-size:1.3vw">先把水倒回瓶子，再轉緊瓶蓋；卡片放回夾鏈袋並壓緊、迴紋針放回桌上。讓兩輪從相同狀態開始。</div>`;
   h += `</div>`;
   if (x.published) {
     const g = gloveStats(T.responses, groupsMap()); const max = Math.max(1, g.total);
-    h += `<div class="stack"><div class="sc-big">哪個動作最難？（卡住的組數，最多 ${g.total} 組）</div><div class="sc-legend"><span><i style="background:var(--green-2)"></i>第一輪</span><span><i style="background:var(--gold)"></i>第二輪</span></div>
+    h += `<div class="stack"><div class="sc-hint" style="font-size:1.1vw">同組任一觀察員回報卡住或未完成，就計 1 組；未回報不代表順利。兩輪換人，結果只作討論線索，不能證明單手是唯一原因。</div><div class="sc-big">哪些操作讓使用者卡住？（組數，最多 ${g.total} 組）</div><div class="sc-legend"><span><i style="background:var(--green-2)"></i>第一輪：戴手套</span><span><i style="background:var(--gold)"></i>第二輪：戴手套＋單手</span></div>
       <div class="sc-chart">${GLOVE_ACTIONS.map((a, i) => `<div class="col"><div class="bars2"><div class="b r1" style="height:${g.stats[1][i] / max * 100}%"><span>${g.stats[1][i]}</span></div><div class="b r2" style="height:${g.stats[2][i] / max * 100}%"><span>${g.stats[2][i]}</span></div></div><div class="cap">${["轉瓶蓋、倒水", "夾鏈袋拿卡片", "迴紋針夾卡片"][i]}</div></div>`).join("")}</div></div>`;
   }
   return h + `</div>`;
@@ -619,6 +624,7 @@ document.addEventListener("click", async e => {
     case "reopen": act.reopen(p.id); break;
     case "publish": act.publish(p.id); break;
     case "step": act.step(p.id, +t.dataset.v); break;
+    case "panel": patchState(s => { pg(s, p.id).panel = Number(t.dataset.v); }); break;
     case "reveal2": patchState(s => { pg(s, p.id).reveal2 = !pg(s, p.id).reveal2; }); break;
     case "timer": act.timer(+t.dataset.v); break;
     case "glove": act.glove(t.dataset.v); break;

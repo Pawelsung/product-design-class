@@ -366,3 +366,10 @@ body.screen .sc:not(.sc-cover) { background-color: #FBFCFB; background-image: li
 .sc-stages div { background: rgba(233, 239, 235, .92); border-radius: 1vw; padding: 1.1vw 1.3vw; display: flex; flex-direction: column; gap: .4vw; font-size: 1.55vw; }
 .sc-stages b { color: var(--green); font-size: 1.7vw; }
 .sc-stages b i { font-style: normal; font-family: var(--mono); margin-right: .5vw; }
+
+.meme-panel { width:min(100%, 480px); margin:0 auto; flex-shrink:0; }
+.meme-crop { position:relative; width:100%; aspect-ratio:1; overflow:hidden; }
+.meme-crop img { position:absolute; width:200%!important; max-width:none!important; height:auto!important; max-height:none!important; top:0; left:0; }
+.meme-crop.side-1 img { left:-100%; }
+.meme-panel figcaption { text-align:center; margin:.5em 0; font-weight:700; }
+.sc-imgwrap .meme-panel { width:min(42vw, 56vh); }

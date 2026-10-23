@@ -287,21 +287,21 @@ function img(name) { return name ? `<img class="st-img" src="${IMAGES[name]}" al
 
 function voteView(p) {
   const v = val(p), ed = isEditor(p);
-  let h = img(p.img);
+  let h = p.panels ? panelImage(p, ps(p)) : img(ps(p).reveal2 && p.revealImg ? p.revealImg : p.img);
   if (p.caption) h += `<p class="muted">${esc(p.caption)}</p>`;
   if (p.intro) h += `<div class="soft small">${esc(p.intro)}</div>`;
-  if (p.intro3) h += `<div class="stack">${p.intro3.map(([a, b]) => `<div class="soft"><b>${esc(a)}</b>　${esc(b)}</div>`).join("")}</div>`;
+  if (p.intro3) h += `<div class="stack">${p.intro3.slice(0, ps(p).step || 0).map(([a, b]) => `<div class="soft"><b>${esc(a)}</b>　${esc(b)}</div>`).join("")}</div>`;
   if (p.question) h += `<h2 style="font-size:1.15rem">${esc(p.question)}</h2>`;
   h += `<div class="big-choices">${p.options.map(o => `<button data-act="vote" data-v="${esc(o)}" aria-pressed="${v.choice === o}" ${dis(ed)}>${esc(o)}</button>`).join("")}</div>`;
   h += statusBox(p);
   const s = ps(p);
-  if (p.lines && s.step) h += `<div class="stack">${p.lines.slice(0, s.step).map(l => `<div class="banner ok">${esc(l)}</div>`).join("")}</div>`;
-  if (p.revealImg && s.reveal2) h += `<h2 style="font-size:1.15rem">${esc(p.revealCaption || "")}</h2>${img(p.revealImg)}`;
+  if (p.lines && s.step) h += `<div class="stack">${p.lines.slice(0, p.intro3 ? Math.max(0, s.step - p.intro3.length) : s.step).map(l => `<div class="banner ok">${esc(l)}</div>`).join("")}</div>`;
+
   return h;
 }
 function wallView(p) {
   const v = val(p), ed = isEditor(p);
-  let h = "";
+  let h = img(p.img);
   if (p.source) h += `<p class="small muted">出處：${esc(p.source)}</p>`;
   h += `<label class="lab" for="w-${p.id}">${esc(p.prompt)}</label><textarea id="w-${p.id}" data-bind="wall" maxlength="${p.max || 100}" placeholder="${esc(p.placeholder || "")}" ${dis(ed)}>${esc(v.text || "")}</textarea>`;
   h += `<div class="row"><button class="btn primary" data-act="send" ${dis(ed && (v.text || "").trim())}>貼到投影</button>${statusBox(p)}</div>`;
@@ -318,7 +318,7 @@ function defsHTML() { return `<div class="stack">${STAGES.map((s, i) => `<div cl
 function infoView(p) {
   let h = "";
   if (p.defs) h += defsHTML();
-  h += img(p.img);
+  h += p.panels ? panelImage(p, ps(p)) : img(p.img);
   if (p.pair) h += `<div class="stack">${p.pair.map(([a, b]) => `<div class="soft"><b style="color:var(--green)">${esc(a)}</b><br>${esc(b)}</div>`).join("")}</div>`;
   const n = ps(p).step || 0;
   if (p.lines && n) h += `<div class="stack">${p.lines.slice(0, n).map(l => `<div class="soft">${esc(l)}</div>`).join("")}</div>`;
@@ -409,7 +409,7 @@ function feedbackView(p) {
 function gloveView(p) {
   const v = val(p), ed = isEditor(p), s = ps(p), round = s.round || 1;
   let h = `<div class="soft"><b>三個動作</b><ol style="margin:6px 0 0 1.2em;padding:0">${GLOVE_ACTIONS.map(a => `<li>${esc(a)}</li>`).join("")}</ol></div>`;
-  h += `<div class="banner info">${s.phase === "reset" ? "恢復道具：瓶蓋轉緊、水倒回瓶子、卡片放回夾鏈袋並壓緊、迴紋針放回桌上" : round === 1 ? "第一輪：戴手套，45 秒" : "第二輪：換人，一樣戴手套，一隻手抓著椅背，只能用單手，45 秒"}</div>`;
+  h += `<div class="banner info">${s.phase === "reset" ? "道具復位・準備第二輪（30 秒）：先把水倒回瓶子，再轉緊瓶蓋。其餘：瓶蓋轉緊、水倒回瓶子、卡片放回夾鏈袋並壓緊、迴紋針放回桌上" : round === 1 ? "第一輪：戴手套，45 秒" : "第二輪：換人，一樣戴手套，一隻手抓著椅背，只能用單手，45 秒"}</div>`;
   h += `<p class="small muted">你是觀察員：每個動作都要選。卡住的寫一句怎麼卡住的。這一頁每個人都可以送出。</p>`;
   [1, 2].forEach(r => {
     if (r === 2 && round < 2) return;
