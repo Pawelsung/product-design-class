@@ -316,7 +316,7 @@ function revealView(p) {
 }
 function defsHTML() { return `<div class="stack">${STAGES.map((s, i) => `<div class="soft"><b style="color:var(--green)">${i + 1}　${s}</b><br>${esc(DESC_CARDS[DESC_ORDER[i]])}</div>`).join("")}</div>`; }
 function infoView(p) {
-  if (p.kinTask) return kinTask();
+  if (p.kinTask) return kinTask(ps(p));
   if (p.story) return needStory(p, ps(p));
   let h = "";
   if (p.defs) h += defsHTML();

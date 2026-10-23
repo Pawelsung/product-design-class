@@ -137,7 +137,7 @@ const LESSONS = {
         foot: "課本 p.38–39",
         question: "長條圖統計了卡住的組數。只看數字，就知道瓶蓋該怎麼修改嗎？", options: ["知道怎麼改", "還要觀察、問人"],
         lines: ["數字指出哪些操作常卡住，卻不能直接告訴我們原因或修改方法。", "綜合看到的動作、聽到的感受和紀錄，才能提出有根據的需求。"] },
-      { id: "2-4-kin", type: "info", time: "備用案例", optional: true, title: "Microsoft Kin：你會怎麼查出使用者要什麼？", kinTask: true },
+      { id: "2-4-kin", type: "info", time: "備用案例", optional: true, title: "Microsoft Kin：有社群功能，為什麼還不夠？", kinTask: true },
       { id: "2-5", type: "info", time: "11–12 分", title: "想要的功能 ≠ 需求", story: true,
         lines: [
           "使用者說：「我要更大的水壺。」",

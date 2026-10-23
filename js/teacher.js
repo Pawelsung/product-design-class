@@ -211,6 +211,11 @@ function classTab(p) {
 }
 function controls(p, x) {
   let h = "";
+  if (p.kinTask) {
+    const n = Math.max(0, Math.min(4, Number(x.step) || 0));
+    const labels = ["認識產品", "限制與成本", "討論任務", "揭曉結果", "帶回自己的產品"];
+    return `<div class="t-sec"><h3>Kin 完整案例｜${n + 1}/5</h3><p>先介紹背景與限制，讓學生討論，再揭曉結果。</p><div class="row">${labels.map((label, i) => `<button class="btn ${n === i ? "primary" : ""}" data-act="step" data-v="${i}">${i + 1}. ${label}</button>`).join("")}</div><div class="row"><button class="btn" data-act="step" data-v="${n - 1}" ${dis(n > 0)}>上一步</button><button class="btn primary" data-act="step" data-v="${n + 1}" ${dis(n < 4)}>下一步</button></div></div>`;
+  }
   const pub = ["vote", "sort", "judge", "glove", "tricolor"].includes(p.type);
   if (p.type === "glove") {
     h += `<div class="t-sec"><h3>手套挑戰</h3><div class="row">
@@ -453,7 +458,7 @@ function screenBody(p, x) {
     case "reveal": return `<div class="sc-map"><b class="muted">${esc(p.left)}</b><span></span><b class="muted">${esc(p.right)}</b>${p.rows.map(([a, b], i) => `<span class="l">${esc(a)}</span><span class="arr">→</span><span class="r ${i < (x.step || 0) ? "" : "hid"}">${i < (x.step || 0) ? `${i + 1}　${esc(b)}` : "？"}</span>`).join("")}</div>`;
     case "info": {
       let h = "";
-      if (p.kinTask) return kinTask();
+      if (p.kinTask) return kinTask(x);
       if (p.story) return needStory(p, x);
       if (p.panels) return `<div class="sc-imgwrap">${panelImage(p, x)}</div>`;
       if (p.lines && !p.img) h += `<ul class="sc-lines">${p.lines.slice(0, x.step || 0).map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;

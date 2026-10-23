@@ -401,3 +401,21 @@ body.screen .sc:not(.sc-cover) { background-color: #FBFCFB; background-image: li
 .evidence-chart ~ .sc-opts span { flex:1; }
 .evidence-chart ~ .sc-vcount { font-size:1.3vw; }
 .evidence-chart ~ .sc-vcount b { font-size:2vw; }
+
+.kin-case { background:#f0f5f1; padding:20px; border-radius:18px; }
+.kin-progress { color:#2d6952; font-weight:700; }
+.kin-case h2 { margin:.6em 0; font-size:1.6rem; line-height:1.35; }
+.kin-cards { display:grid; gap:12px; }
+.kin-cards article { padding:14px; border-radius:12px; background:white; }
+.kin-cards h3 { margin:0 0 .4em; }
+.kin-cards p { margin:0; line-height:1.65; }
+.kin-task { margin-top:16px; background:#d8e9dc; padding:14px; border-radius:12px; line-height:1.6; }
+.kin-note, .kin-sources { font-size:.85rem; line-height:1.5; margin-top:12px; }
+.screen .kin-case { padding:1.5vw 2vw; }
+.screen .kin-progress { font-size:1.3vw; }
+.screen .kin-case h2 { font-size:2.6vw; }
+.screen .kin-cards { grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.2vw; }
+.screen .kin-cards article { padding:1.2vw; font-size:1.55vw; }
+.screen .kin-cards h3 { font-size:1.7vw; }
+.screen .kin-task { font-size:1.65vw; margin-top:1.2vw; padding:1vw; }
+.screen .kin-note, .screen .kin-sources { font-size:1.1vw; margin-top:.7vw; }
