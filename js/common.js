@@ -34,6 +34,23 @@ function uid() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
   return "x" + Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
 }
+function todayZh(d) {
+  d = d || new Date(Clock.now());
+  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日（${"日一二三四五六"[d.getDay()]}）`;
+}
+function titleBreak(t) { return esc(t).replace(/，/g, "，<br>"); }
+/* 每一節的首頁插圖卡（學生平板用） */
+function coverCard(lesson, label, extra) {
+  const L = LESSONS[lesson];
+  const first = L ? L.pages[0] : null;
+  return `<section class="cover-card">
+    <div class="cv-row"><span class="cv-chip">${esc(L ? L.chip : "產品設計的流程")}</span><span class="cv-date">${todayZh()}</span></div>
+    <h1 class="cv-title">${first ? titleBreak(first.title) : "產品設計的流程"}</h1>
+    <div class="cv-meta">${esc(label || "")}${label && L ? "｜" : ""}${L ? esc(L.book) : ""}</div>
+    ${L && ART[lesson] ? `<div class="cv-art">${ART[lesson]}</div>` : ""}
+    ${extra || ""}
+  </section>`;
+}
 function fmtClock(ms) { if (!ms) return ""; const d = new Date(ms); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
 function fmtLeft(sec) { sec = Math.max(0, Math.ceil(sec)); return String(Math.floor(sec / 60)).padStart(2, "0") + ":" + String(sec % 60).padStart(2, "0"); }
 function fmtSec(ms) { return (Math.round(ms / 100) / 10).toFixed(1) + " 秒"; }

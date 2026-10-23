@@ -211,10 +211,10 @@ setInterval(renderLive, 500);
 
 function view() {
   if (S.phase === "code") return codeView();
-  if (S.phase === "waitclass") return `<div class="st-main"><div class="login-box"><h1>等老師開課</h1><p>老師開始上課後，這個畫面會自動進入，不用重新掃描。</p><p class="muted small">班級代號 ${esc(KEY)}</p></div></div>`;
+  if (S.phase === "waitclass") return `<div class="st-main">${coverCard(null, "", `<div class="cv-ok">等老師開課<br><span>老師開始上課後會自動進入，不用重新掃描。班級代號 ${esc(KEY)}</span></div>`)}</div>`;
   if (S.phase === "loading") return `<div class="st-main"><p class="muted">連線中…</p></div>`;
   if (S.phase === "seat") return seatView();
-  if (S.phase === "pending") return `<div class="st-main"><div class="login-box"><h1>等老師確認</h1><p>${S.seat} 號已經在另一台平板登入。老師按「允許」後，這台就能開始用，之前送出的作答都還在。</p><p class="muted small">如果你輸錯座號，請舉手請老師幫你登出這台。</p></div></div>`;
+  if (S.phase === "pending") return `<div class="st-main">${coverCard(S.session && S.session.lesson, S.session && S.session.label)}<div class="login-box" style="margin-top:0"><h1>等老師確認</h1><p>${S.seat} 號已經在另一台平板登入。老師按「允許」後，這台就能開始用，之前送出的作答都還在。</p><p class="muted small">如果你輸錯座號，請舉手請老師幫你登出這台。</p></div></div>`;
   const p = curPage();
   const st = S.session.state || {};
   const t = st.timer;
@@ -229,7 +229,7 @@ function view() {
   h += `</div><div id="netbar" class="banner bad" style="border-radius:0" ${S.net ? "hidden" : ""}>網路中斷，正在重新連線…你寫的內容會先存在這台平板。</div>`;
   h += `<div class="st-main">`;
   h += lingerBanner(p);
-  h += `<div class="st-head"><span class="pg">${esc(p.id)}・${esc(p.time)}</span><h1>${esc(p.title)}</h1>${p.sub ? `<span class="muted">${esc(p.sub)}</span>` : ""}</div>`;
+  if (p.type !== "login") h += `<div class="st-head"><span class="pg"><b>${esc(p.id)}</b>${esc(p.time)}</span><h1>${esc(p.title)}</h1>${p.sub ? `<span class="muted">${esc(p.sub)}</span>` : ""}</div>`;
   h += gate(p);
   h += body(p);
   h += `</div>`;
@@ -263,7 +263,7 @@ const dis = ok => ok ? "" : "disabled";
 
 function body(p) {
   switch (p.type) {
-    case "login": return `<div class="banner ok">登入成功：你是第 ${S.group} 組 ${S.seat} 號。畫面會自動跟著老師換頁。</div>`;
+    case "login": return coverCard(lessonNo(), S.session.label, `<div class="cv-ok">登入成功：你是第 ${S.group} 組 ${S.seat} 號<br><span>畫面會自動跟著老師換頁</span></div>`);
     case "vote": return voteView(p);
     case "wall": return wallView(p);
     case "reveal": return revealView(p);
@@ -569,8 +569,8 @@ function codeView() {
 }
 function seatView() {
   const seats = S.session && S.session.seats || 28;
-  return `<div class="st-main"><div class="login-box"><h1>輸入你的座號</h1>
-    <p class="muted small">課堂代碼 ${esc(CODE)}${S.session && S.session.label ? "・" + esc(S.session.label) : ""}</p>
+  return `<div class="st-main">${coverCard(S.session && S.session.lesson, S.session && S.session.label)}<div class="login-box" style="margin-top:0"><h1>輸入你的座號</h1>
+    <p class="muted small">課堂代碼 ${esc(CODE)}</p>
     <input type="text" inputmode="numeric" id="seat-in" data-bind="seat" maxlength="2" value="${esc(S.seatInput)}" autocomplete="off" placeholder="座號">
     ${S.msg ? `<div class="banner bad">${esc(S.msg)}</div>` : ""}
     <button class="btn primary block" data-act="join" ${dis(+S.seatInput >= 1 && +S.seatInput <= seats)}>登入</button>

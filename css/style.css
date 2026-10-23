@@ -1,17 +1,17 @@
 /* 依第 1、2 節舊簡報：深綠標題、淺綠灰卡片、金色計時、紅色放錯、藍色太籠統。教室投影固定淺色。 */
 :root {
   color-scheme: light;
-  --green: #1F3D2E;
-  --green-2: #2E5B45;
-  --ink: #18261F;
+  --green: #2C4A3C;
+  --green-2: #3F6A55;
+  --ink: #1E2B25;
   --muted: #5D6D65;
   --line: #D4DDD7;
   --card: #E9EFEB;
   --chip: #DCEAE1;
   --bg: #F5F8F6;
   --white: #FFFFFF;
-  --gold: #E9A92F;
-  --gold-soft: #FBEFD5;
+  --gold: #E3B544;
+  --gold-soft: #FBF1D6;
   --red: #C24F3A;
   --red-soft: #F7E1DB;
   --blue: #3C6A90;
@@ -258,3 +258,94 @@ body.screen { background: var(--white); overflow: hidden; }
 .sc-pair b { display: block; font-size: 2.3vw; color: var(--green); margin-bottom: .5vw; }
 .sc-overlay { position: fixed; right: 1.4vw; bottom: 1.2vw; background: rgba(24,38,31,.85); color: #fff; border-radius: .8vw; padding: .6vw 1.1vw; font-size: 1.1vw; }
 .sc-overlay.err { background: var(--red); }
+
+/* ===== 視覺更新：設計草圖本 ===== */
+:root { --hand: "LXGW WenKai TC", "Kaiti TC", "BiauKai", "DFKai-SB", serif; --grid: rgba(31, 61, 46, .055); --board: #2E4A3D; --board-2: #375746; --cream: #F5F2E8; --sage: #B9CDBF; }
+/* 平板、手機：淡淡的方格紙 */
+body:not(.screen) { background-color: var(--bg); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 22px 22px; }
+.card, .jrow, .needrow, .step { box-shadow: 0 1px 0 rgba(31, 61, 46, .06); }
+.st-head .pg { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); font-family: var(--font); font-size: .85rem; }
+.st-head .pg b { font-family: var(--mono); background: var(--green); color: #fff; border-radius: 6px; padding: 0 8px; font-weight: 700; }
+.st-main h1 { font-size: 1.55rem; }
+.st-top { box-shadow: 0 2px 0 var(--gold); }
+
+/* 每一節的首頁卡（平板） */
+.cover-card { position: relative; overflow: hidden; background-color: var(--board); color: var(--cream); border-radius: 18px; padding: 20px 20px 16px; display: flex; flex-direction: column; gap: 8px;
+  background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px); background-size: 24px 24px; }
+.cover-card .cv-row { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: center; }
+.cv-chip { background: var(--gold); color: #3B2600; border-radius: 999px; padding: 3px 12px; font-weight: 700; font-size: .85rem; }
+.cv-date { color: var(--sage); font-size: .9rem; }
+.cover-card .cv-title { font-family: var(--hand); font-weight: 700; font-size: 1.9rem; line-height: 1.35; color: #fff; margin-top: 6px; }
+.cover-card .cv-meta { color: var(--sage); font-size: .92rem; }
+.cover-card .cv-art svg { width: 100%; height: auto; display: block; margin-top: 4px; }
+.cover-card .cv-ok { background: var(--cream); color: var(--green); border-radius: 12px; padding: 12px 14px; font-weight: 700; font-size: 1.05rem; }
+.cover-card .cv-ok span { font-weight: 400; font-size: .9rem; color: var(--muted); }
+
+/* 投影首頁：深綠繪圖板 */
+.sc-cover { background-color: var(--board); color: var(--cream); padding: 2.6vw 3.6vw 2vw; gap: 1.4vw;
+  background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px); background-size: 2.4vw 2.4vw; }
+.sc-cover .cv-row { display: flex; justify-content: space-between; align-items: center; }
+.sc-cover .cv-chip { font-size: 1.35vw; padding: .35vw 1.3vw; }
+.sc-cover .cv-date { font-size: 1.6vw; color: var(--cream); }
+.sc-cover .cv-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 3vw; align-items: center; }
+.sc-cover .cv-left { display: flex; flex-direction: column; gap: 1vw; min-width: 0; }
+.sc-cover .cv-title { font-family: var(--hand); font-weight: 700; font-size: 4.6vw; line-height: 1.25; color: #fff; }
+.sc-cover .cv-meta { font-size: 1.6vw; color: var(--sage); }
+.sc-cover .cv-art svg { width: 100%; height: auto; max-height: 21vw; display: block; }
+.sc-cover .cv-right { display: flex; flex-direction: column; gap: 1.4vw; }
+.sc-cover .cv-qr { background: var(--cream); color: var(--green); border-radius: 1.4vw; padding: 1.4vw; display: grid; grid-template-columns: 14vw minmax(0, 1fr); gap: 1.4vw; align-items: center; box-shadow: 0 .5vw 0 var(--gold); }
+.sc-cover .cv-qr .qr { width: 14vw; height: 14vw; background: #fff; border-radius: .6vw; padding: .5vw; }
+.sc-cover .cv-qr .qr svg { width: 100%; height: 100%; display: block; }
+.sc-cover .qr-txt { display: flex; flex-direction: column; gap: .5vw; font-size: 1.5vw; }
+.sc-cover .qr-txt b { font-size: 2vw; }
+.sc-cover .qr-txt .code { color: var(--muted); font-size: 1.3vw; margin-top: .6vw; }
+.sc-cover .qr-txt .code i { font-style: normal; font-family: var(--mono); font-weight: 700; color: var(--green); font-size: 2.4vw; letter-spacing: .1em; display: block; }
+.sc-cover .cv-agenda { border: .15vw dashed var(--sage); border-radius: 1.2vw; padding: 1.2vw 1.6vw; }
+.sc-cover .cv-agenda b { color: var(--gold); font-size: 1.5vw; }
+.sc-cover .cv-agenda ol { margin: .6vw 0 0; padding-left: 1.4em; font-size: 1.55vw; line-height: 1.75; }
+.sc-cover .cv-seats { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1.4vw; align-items: center; font-size: 1.4vw; color: var(--sage); }
+.sc-cover .cv-seats b { color: var(--gold); font-size: 1.8vw; }
+
+/* 投影內容頁：方格紙＋標題列 */
+body.screen .sc:not(.sc-cover) { background-color: #FBFCFB; background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 2.2vw 2.2vw; }
+.sc-top { border-bottom: .3vw solid var(--gold); padding-bottom: 1vw; }
+.sc-pid { font-family: var(--mono); font-weight: 700; background: var(--green); color: #fff; border-radius: .7vw; padding: .2vw 1vw; font-size: 1.6vw; }
+.sc-top h1 { color: var(--green); }
+.sc-def, .sc-g, .sc-hint, .sc-map .l { background-color: rgba(233, 239, 235, .92); }
+.sc-note { box-shadow: .2vw .3vw 0 rgba(31, 61, 46, .12); transform: rotate(-.6deg); }
+.sc-note:nth-child(even) { transform: rotate(.7deg); }
+@media (prefers-reduced-motion: reduce) { .sc-note, .sc-note:nth-child(even) { transform: none; } }
+
+.sc-imgwrap .side { background: var(--white); border: .15vw solid var(--line); border-radius: 1.4vw; padding: 1.8vw; gap: 1.4vw; justify-content: center; }
+.sc-imgwrap .side .sc-big:first-child { font-size: 2.4vw; color: var(--green); }
+.sc-opts { display: flex; flex-direction: column; gap: .8vw; }
+.sc-opts span { border: .2vw solid var(--green); color: var(--green); border-radius: 1vw; padding: .9vw 1.2vw; font-size: 1.8vw; font-weight: 700; text-align: center; }
+.sc-vcount { display: flex; flex-direction: column; gap: .3vw; font-size: 1.5vw; color: var(--muted); }
+.sc-vcount b { font-family: var(--mono); font-size: 4vw; color: var(--ink); line-height: 1; }
+.sc-vcount span { font-size: 1.2vw; }
+.sc-notes { align-items: flex-start; }
+.sc-note:nth-child(3n+2) { background: #DCEAE1; }
+.sc-note:nth-child(3n) { background: #DFE9F2; }
+.sc-cover .qr-txt b { white-space: nowrap; }
+
+/* 黑板：粉筆色與邊緣的粉筆灰 */
+:root { --chalk-y: #F3D57E; --chalk-p: #F2AEA4; --chalk-b: #A9D2E8; --wood: #8A6440; }
+.cover-card, .sc-cover {
+  background-image:
+    radial-gradient(ellipse at 20% 15%, rgba(255,255,255,.07), transparent 45%),
+    radial-gradient(ellipse at 80% 85%, rgba(255,255,255,.05), transparent 40%),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.22) 100%),
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: auto, auto, auto, 24px 24px, 24px 24px; }
+.sc-cover { background-size: auto, auto, auto, 2.4vw 2.4vw, 2.4vw 2.4vw; border-bottom: 1.4vw solid var(--wood); box-shadow: inset 0 -.4vw 0 rgba(0,0,0,.25); }
+.cover-card { border: 6px solid var(--wood); }
+.cv-chip { background: var(--chalk-y); color: #3A2B05; }
+.cover-card .cv-title, .sc-cover .cv-title { color: var(--cream); text-shadow: 0 0 1px rgba(255,255,255,.4); }
+.sc-cover .cv-qr { background: var(--cream); box-shadow: 0 .5vw 0 var(--chalk-y); }
+.sc-cover .cv-agenda { border-color: rgba(245,242,232,.45); }
+.sc-cover .cv-agenda b { color: var(--chalk-y); }
+.sc-cover .cv-seats b { color: var(--chalk-y); }
+.sc-seats span.on { background: var(--chalk-y); color: #3A2B05; }
+.st-top { box-shadow: 0 3px 0 var(--wood); }
+.t-head { box-shadow: 0 3px 0 var(--wood); }
+.sc-top { border-bottom-color: var(--gold); }

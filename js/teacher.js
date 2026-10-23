@@ -386,12 +386,12 @@ function screenView() {
   if (!T.session) return `<div class="sc"><p>連線中…</p></div>`;
   const p = curP(), x = PS(p.id);
   if (p.type === "login") return loginScreen(p);
-  let h = `<div class="sc"><div class="sc-top"><h1>${esc(p.title)}</h1>`;
+  let h = `<div class="sc"><div class="sc-top"><span class="sc-pid">${esc(p.id)}</span><h1>${esc(p.title)}</h1>`;
   if (answerable(p)) h += `<span class="sc-state ${x.open ? "live" : ""}">${x.open ? "作答中" : x.published ? "已公布" : x.ended ? "已結束" : "尚未開始"}</span>`;
   h += `<span class="sc-count" data-timer hidden></span><span class="sc-time">${esc(p.time)}</span></div>`;
   if (p.sub && p.type !== "wall") h += `<div class="sc-sub">${esc(p.sub)}</div>`;
   h += `<div class="sc-body">${screenBody(p, x)}</div>`;
-  h += `<div class="sc-foot"><span>${esc(L().title)}　${esc(L().book)}</span><span class="mono">${p.id}</span></div></div>`;
+  h += `<div class="sc-foot"><span>${esc(L().title)}　${esc(L().book)}</span><span>${esc(T.session.class_label)}　${todayZh()}</span></div></div>`;
   h += `<div class="sc-overlay err" id="netbar" ${T.net ? "hidden" : ""}>網路中斷，重新連線中…</div>`;
   return h;
 }
@@ -400,10 +400,23 @@ function loginScreen(p) {
   const a = activeSeats();
   let qr = "";
   try { const q = qrcode(0, "M"); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true }); } catch (e) { qr = ""; }
-  return `<div class="sc sc-title"><div class="sc-hero"><div><h1>${esc(p.title)}</h1><div class="sub">${esc(p.sub)}</div></div>
-    <div class="codebox"><div class="qr">${qr}</div><div><div style="font-size:1.4vw">掃 QR code，或打開網址輸入代碼</div><div class="bigcode">${T.session.code}</div><div class="url">${esc(STUDENT_URL())}</div></div></div></div>
-    <div><div style="font-size:1.4vw;margin-bottom:.6vw">已登入 ${a.length} / ${T.session.seats}</div><div class="sc-seats">${Array.from({ length: T.session.seats }, (_, i) => i + 1).map(s => `<span class="${a.includes(s) ? "on" : ""}">${s}</span>`).join("")}</div></div></div>
-    <div class="sc-overlay err" id="netbar" ${T.net ? "hidden" : ""}>網路中斷，重新連線中…</div>`;
+  const Lx = L();
+  return `<div class="sc sc-cover">
+    <div class="cv-row"><span class="cv-chip">${esc(Lx.chip)}</span><span class="cv-date">${todayZh()}</span></div>
+    <div class="cv-main">
+      <div class="cv-left">
+        <h1 class="cv-title">${titleBreak(p.title)}</h1>
+        <div class="cv-meta">${esc(T.session.class_label)}｜${esc(Lx.book)}</div>
+        <div class="cv-art">${ART[T.session.lesson] || ""}</div>
+      </div>
+      <div class="cv-right">
+        <div class="cv-qr"><div class="qr">${qr}</div><div class="qr-txt"><b>掃描 QR code</b><span>用 Chromebook 掃描，再輸入自己的座號</span><span class="code">課堂代碼 <i>${T.session.code}</i></span></div></div>
+        <div class="cv-agenda"><b>今天要做的事</b><ol>${Lx.agenda.map(x => `<li>${esc(x)}</li>`).join("")}</ol></div>
+      </div>
+    </div>
+    <div class="cv-seats"><span>已登入 <b>${a.length}</b> / ${T.session.seats}</span><div class="sc-seats">${Array.from({ length: T.session.seats }, (_, i) => i + 1).map(s => `<span class="${a.includes(s) ? "on" : ""}">${s}</span>`).join("")}</div></div>
+  </div>
+  <div class="sc-overlay err" id="netbar" ${T.net ? "hidden" : ""}>網路中斷，重新連線中…</div>`;
 }
 function bars(options, counts, n) {
   const max = Math.max(1, ...counts);
@@ -414,7 +427,8 @@ function screenBody(p, x) {
   switch (p.type) {
     case "vote": {
       const t = voteTally(T.responses, p.id, p.options);
-      const result = x.published ? bars(p.options, t.counts, t.n) : `<div class="sc-big">${x.open ? "投票中" : "等老師開始"}・已投 ${t.n} 人</div>`;
+      const result = x.published ? bars(p.options, t.counts, t.n)
+        : `<div class="sc-opts">${p.options.length <= 2 ? p.options.map(o => `<span>${esc(o)}</span>`).join("") : ""}</div><div class="sc-vcount"><b>${t.n}</b> / ${T.session.seats} 人已投票<span>${x.open ? "投票中，結果等老師公布" : "等老師開始投票"}</span></div>`;
       if (p.intro3) {
         return `<div class="sc-defs">${p.intro3.map(([a, b]) => `<div class="sc-def"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("")}</div><div class="sc-hint">${esc(p.question)}</div>${result}${x.step ? `<ul class="sc-lines">${p.lines.slice(0, x.step).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}`;
       }
