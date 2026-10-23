@@ -44,7 +44,7 @@ const COLORS = {
    login 登入｜vote 投票／單選（個人）｜wall 便利貼牆（個人、匿名）｜reveal 逐列揭曉｜info 講解
    sort 排序搶答（小組）｜judge 判斷 AI 計畫（小組）｜form 小組表單｜feedback 課堂回饋（個人、只有老師看）
    glove 手套挑戰觀察（個人）｜voice 心聲卡（個人、匿名）｜cards 唸卡抽卡整理需求（小組）
-   aicompare AI 比對（小組）｜tricolor 三色牌（小組）｜pickone 最值得討論的一條（小組） */
+   aicompare AI 比對（小組）｜tricolor 三色牌（個人）｜pickone 最值得討論的一條（小組） */
 
 const LESSONS = {
   1: {
@@ -116,7 +116,7 @@ const LESSONS = {
     book: "課本 p.37–41",
     agenda: ["手套挑戰", "匿名心聲卡與角色卡", "AI 也列一份，比比看", "三色牌：這句有根據嗎？", "決定目標客群"],
     usesAI: true,
-    slots: ["2-7a", "2-7b", "2-8", "2-9", "2-10", "2-12"],
+    slots: ["2-7a", "2-7b", "2-8", "2-10", "2-12"],
     pages: [
       { id: "2-0", type: "login", time: "上課前", title: "為什麼會有人買這個？", sub: "九年級生活科技｜第二章 產品設計的流程・第 2 節 挑戰二（課本 p.37–41）" },
       { id: "2-1", type: "wall", time: "0–2 分", title: "迷你保溫瓶「喝２口就沒了」到底誰會買？",
@@ -137,8 +137,7 @@ const LESSONS = {
         foot: "課本 p.38–39",
         question: "長條圖統計了卡住的組數。只看數字，就知道瓶蓋該怎麼修改嗎？", options: ["知道怎麼改", "還要觀察、問人"],
         lines: ["數字指出哪些操作常卡住，卻不能直接告訴我們原因或修改方法。", "綜合看到的動作、聽到的感受和紀錄，才能提出有根據的需求。"] },
-      { id: "2-4-kin", type: "info", time: "備用案例", optional: true, title: "課本延伸：Microsoft Kin",
-        lines: ["2010 年的 Kin 主打社群聯絡，卻缺少當時智慧型手機常見的 App 擴充能力。", "先問：這支手機想服務誰？這些人真正重視什麼？", "回到課本案例：用觀察、訪談與資料分析，檢查產品假設，而不是只問自己會不會買。"] },
+      { id: "2-4-kin", type: "info", time: "備用案例", optional: true, title: "Microsoft Kin：你會怎麼查出使用者要什麼？", kinTask: true },
       { id: "2-5", type: "info", time: "11–12 分", title: "想要的功能 ≠ 需求", story: true,
         lines: [
           "使用者說：「我要更大的水壺。」",
@@ -146,21 +145,21 @@ const LESSONS = {
           "他說：「下午常常沒水喝，又不想一直離開座位去裝水。」",
           "確認：「所以你是希望一整天在座位上都有水喝，對嗎？」「對！」",
           "需求：上課一整天的學生，在座位上也能隨時喝到足夠的水。",
-          "加大容量只是其中一種做法；更好裝水的瓶口，也可能是答案。"
+          "先確認一天需要喝多少水、何時能補水，再比較加大容量或安排補水時機。做法要能解決剛才確認的困難。"
         ] },
       { id: "2-6", type: "voice", time: "12–15 分", title: "匿名心聲卡", sub: "投影只顯示內容，不顯示座號",
-        used: ["我什麼時候會用〔產品〕？", "用〔產品〕最煩的一次是什麼情況？", "我希望它怎麼改？"],
+        used: ["我什麼時候會用〔產品〕？", "回想一次使用〔產品〕不方便的經驗：你當時要做什麼？哪個動作卡住？", "當時你希望能順利做到什麼？"],
         unused: ["我看過別人用〔產品〕的時候，遇到什麼麻煩？", "如果可以問使用者，我最想問什麼？", "我猜他們會在意什麼？"] },
-      { id: "2-7", type: "cards", time: "15–19 分", title: "唸卡、抽卡、整理需求", scope: "g", slot: "2-7a", slot2: "2-7b" },
+      { id: "2-7", type: "cards", time: "15–19 分", title: "唸心聲卡、選情境、整理需求", scope: "g", slot: "2-7a", slot2: "2-7b" },
       { id: "2-8", type: "aicompare", time: "19–25 分", title: "AI 也列一份，比比看", scope: "g", slot: "2-8", linger: true,
         prompt: "我們想改良〔產品〕。不同的人使用〔產品〕時，各會有什麼需求？只列 6 條，每條格式是「誰：需要什麼」，不要開頭和結尾的說明。" },
-      { id: "2-9a", type: "tricolor", time: "25–31 分", title: "三色牌・第 1 句", scope: "g", slot: "2-9", publish: true, sample: true,
-        quote: "戴著手套或只能用單手的人，需要不用轉很多圈就能打開的蓋子。", evidence: { kind: "glove", text: "本班手套挑戰的長條圖：「轉開瓶蓋」第一輪、第二輪各有幾組卡住" } },
-      { id: "2-9b", type: "tricolor", time: "25–31 分", title: "三色牌・第 2 句", scope: "g", slot: "2-9", publish: true, sample: true,
+      { id: "2-9a", type: "tricolor", time: "25–31 分", title: "三色牌・第 1 句", publish: true, sample: true,
+        quote: "只能用一隻手時，使用者需要能自己打開水壺，不必請別人幫忙。", evidence: { kind: "glove", text: "本班手套挑戰的長條圖：「轉開瓶蓋」第一輪、第二輪各有幾組卡住" } },
+      { id: "2-9b", type: "tricolor", time: "25–31 分", title: "三色牌・第 2 句", publish: true, sample: true,
         quote: "女生都喜歡粉紅色、有可愛圖案的水壺。", evidence: { kind: "wall", text: "本班心聲牆：有沒有人提到顏色、圖案？", words: ["顏色", "圖案", "粉", "可愛", "外觀", "樣式", "好看"] } },
-      { id: "2-9c", type: "tricolor", time: "25–31 分", title: "三色牌・第 3 句", scope: "g", slot: "2-9", publish: true, sample: true,
+      { id: "2-9c", type: "tricolor", time: "25–31 分", title: "三色牌・第 3 句", publish: true, sample: true,
         quote: "上班族比較喜歡大容量的水壺。", evidence: { kind: "text", text: "2-1 的新聞：有人的媽媽上班用 120 毫升的小保溫瓶帶冰塊；我們班沒有上班族的心聲卡。" } },
-      { id: "2-9d", type: "tricolor", time: "備用句", title: "三色牌・備用句", scope: "g", slot: "2-9", publish: true, sample: true, optional: true,
+      { id: "2-9d", type: "tricolor", time: "備用句", title: "三色牌・備用句", publish: true, sample: true, optional: true,
         quote: "長輩不太會用新東西，所以不用考慮他們。", evidence: { kind: "text", text: "2-1 的新聞：洗腎的長輩也在用小保溫瓶。" } },
       { id: "2-10", type: "pickone", time: "25–31 分（彈性）", title: "最值得討論的一條", scope: "g", slot: "2-10", optional: true },
       { id: "2-11", type: "info", time: "31–40 分", title: "使用者和目標客群", img: "meme6",
@@ -190,3 +189,12 @@ for (const p of LESSONS[1].pages) {
   if (["meme1", "meme2", "meme7"].includes(p.img)) p.panels = ["期望", "現實"];
   if (p.img === "meme3") p.panels = ["原本的門", "改良後的門"];
 }
+
+ROLE_CARDS.push(
+  { name: "⑦ 手上拿滿東西的人", say: "我抱著課本，沒辦法把東西都放下來。", think: "另一隻手拿著東西時，能完成哪些動作？" },
+  { name: "⑧ 戴厚手套的騎車族", say: "天冷戴手套，手指很難捏住小零件。", think: "戴手套能握住、按到或打開嗎？" },
+  { name: "⑨ 趕著換教室的學生", say: "下課只有幾分鐘，我要快點收好東西。", think: "收納和拿取要花幾個步驟？" },
+  { name: "⑩ 用完要清洗的人", say: "有些縫隙很深，我的刷子伸不進去。", think: "哪些地方不好清潔？" },
+  { name: "⑪ 和別人共用產品的人", say: "大家一起用，我不知道有沒有調回適合我的設定。", think: "換人使用時，需要確認或調整什麼？" },
+  { name: "⑫ 外出很久的人", say: "我出門很久，中途不一定能補充或充電。", think: "長時間使用時，什麼資源可能不夠？" }
+);

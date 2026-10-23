@@ -77,12 +77,12 @@ function repSeat(slot) { return S.session.reps && S.session.reps[slot] && S.sess
 function aiSeat() { return S.session.ai_ops && S.session.ai_ops[S.group]; }
 function iAmRep(slot) { return repSeat(slot) === S.seat; }
 function iAmAI() { return aiSeat() === S.seat; }
-function product() { const pr = S.session.state && S.session.state.products; return (pr && pr[S.group]) || ""; }
+function product() { const pr = S.session.state && S.session.state.products; const saved = (S.grp.find(r => r.page === "1-8") || {}); return (pr && pr[S.group]) || productText((saved.sent || saved.data || {}).product) || ""; }
 function server(p) { const list = p.scope === "g" ? S.grp : S.mine; return list.find(r => r.page === p.id); }
 function isOpen(p) { return !!ps(p).open; }
 
 /* 老師重設後，舊草稿不能再跑回來：草稿的鑰匙帶上重設時間 */
-function dkey(p, part) { const st = S.session.state || {}; return p.id + (part ? "." + part : "") + "@" + (st.resetAt || 0) + "." + (pstate(st, p.id).resetAt || 0); }
+function dkey(p, part) { const st = S.session.state || {}; return p.id + (p.type === "tricolor" ? ".individual" : "") + (part ? "." + part : "") + "@" + (st.resetAt || 0) + "." + (pstate(st, p.id).resetAt || 0); }
 /* 本地草稿：編輯者用本地值，其他組員一律看伺服器的值 */
 function isEditor(p, part) {
   if (!isOpen(p)) return false;
@@ -316,6 +316,7 @@ function revealView(p) {
 }
 function defsHTML() { return `<div class="stack">${STAGES.map((s, i) => `<div class="soft"><b style="color:var(--green)">${i + 1}　${s}</b><br>${esc(DESC_CARDS[DESC_ORDER[i]])}</div>`).join("")}</div>`; }
 function infoView(p) {
+  if (p.kinTask) return kinTask();
   if (p.story) return needStory(p, ps(p));
   let h = "";
   if (p.defs) h += defsHTML();
@@ -429,10 +430,11 @@ function gloveView(p) {
 
 /* 2-6 心聲卡 */
 function voiceView(p) {
-  const v = val(p), ed = isEditor(p), prod = product();
+  const v = val(p), prod = product(), ed = isEditor(p) && !!prod;
   const qs2 = v.unused ? p.unused : p.used;
   const a = v.a || [];
-  let h = activityGuide("voice") + `<p class="small muted">每題一句就好，可以用語音輸入。投影上只顯示內容，不顯示座號。</p>`;
+  if (!prod) return `<div class="banner wait"><b>第 ${S.group} 組尚未指定產品。</b>請老師在「分組／產品」設定這組要改造的產品，再開始填心聲卡。</div>`;
+  let h = `<div class="banner info"><b>第 ${S.group} 組要改造的產品：${esc(prod)}</b></div>` + activityGuide("voice") + `<p class="small muted">每題一句就好，可以用語音輸入。投影上只顯示內容，不顯示座號。</p>`;
   h += `<label class="row"><input type="checkbox" id="v-unused" data-act="unused" ${v.unused ? "checked" : ""} ${dis(ed)}> 我沒用過${esc(prod || "這個產品")}</label>`;
   h += qs2.map((q, i) => `<div><label class="lab" for="v-${i}">${i + 1}. ${esc(fillProduct(q, prod))}${v.unused && i === 2 ? `<span class="chip warn" style="margin-left:6px">這一題會標成「猜的」</span>` : ""}</label><textarea id="v-${i}" data-bind="voice" data-i="${i}" ${dis(ed)}>${esc(a[i] || "")}</textarea></div>`).join("");
   h += `<div class="row"><button class="btn go" data-act="send" ${dis(ed && [0, 1, 2].every(i => (a[i] || "").trim()))}>送出心聲卡</button>${statusBox(p)}</div>`;
@@ -442,28 +444,15 @@ function voiceView(p) {
 /* 2-7 唸卡、抽卡、整理需求 */
 function cardsView(p) {
   const s = ps(p), seg = s.seg || 1, row = server(p) || {}, d = row.data || {};
-  const cards = d.cards || [];
+  const cards = ROLE_CARDS.map((_, i) => i).slice(1);
   let h = activityGuide(seg === 1 ? "cards1" : "cards2");
-  if (seg === 2) h += `<details><summary>查看心聲卡與兩張角色卡（參考資料）</summary>`;
+  if (seg === 2) h += `<details><summary>查看同組心聲卡與十二種角色情境（參考資料）</summary>`;
   h += `<div class="card stack"><h2 style="font-size:1.1rem">我們組的心聲卡（${S.voices.length} 張）</h2>`;
   h += S.voices.length ? S.voices.map((vc, i) => `<div class="voicecard"><b>卡 ${i + 1}</b>${vc.unused ? `<span class="chip warn" style="margin-left:6px">沒用過</span>` : ""}<br>${(vc.a || []).map((x, k) => `${esc(x)}${vc.unused && k === 2 ? `<span class="chip warn">猜的</span>` : ""}`).join("<br>")}</div>`).join("")
     : `<p class="muted small">還沒有心聲卡。</p>`;
   h += `</div>`;
-  const repA = repSeat(p.slot), canA = isOpen(p) && iAmRep(p.slot) && seg === 1;
-  h += `<div class="card stack"><h2 style="font-size:1.1rem">角色卡</h2><p class="small muted">由 ${repA} 號唸卡，唸完按「抽卡」，抽兩張角色卡。</p>`;
-  if (!cards.length) h += `<button class="btn gold" data-act="draw" ${dis(canA)}>抽卡</button>`;
-  else {
-    h += `<div class="rolecards">${cards.map(c => { const rc = ROLE_CARDS[c]; return `<div class="rolecard"><h3>${esc(rc.name)}</h3><div>${esc(rc.say)}</div><div class="small"><b>想一想：</b>${esc(rc.think)}</div>${rc.img ? img(rc.img) : ""}<div class="note">${ROLE_NOTE}</div></div>`; }).join("")}</div>`;
-    if (d.swap) h += `<p class="small muted">已換過一次卡（${esc(ROLE_CARDS[d.swap.from].name)} → ${esc(ROLE_CARDS[d.swap.to].name)}）</p>`;
-    else if (canA) {
-      const sw = S.local["2-7.swap"] || { card: "", reason: "", other: "" };
-      h += `<details class="box"><summary>真的用不上？換一張（每組限一次）</summary><div class="stack" style="margin-top:8px">
-        <select id="sw-card" data-bind="swap" data-k="card"><option value="">要換掉哪一張？</option>${cards.map(c => `<option value="${c}" ${String(sw.card) === String(c) ? "selected" : ""}>${esc(ROLE_CARDS[c].name)}</option>`).join("")}</select>
-        <select id="sw-reason" data-bind="swap" data-k="reason"><option value="">換卡原因</option>${["這個情境不會用到這個產品", "其他"].map(r => `<option ${sw.reason === r ? "selected" : ""}>${r}</option>`).join("")}</select>
-        ${sw.reason === "其他" ? `<input type="text" id="sw-other" data-bind="swap" data-k="other" placeholder="其他原因" value="${esc(sw.other)}">` : ""}
-        <button class="btn" data-act="swap" ${dis(sw.card && sw.reason && (sw.reason !== "其他" || sw.other.trim()))}>換一張</button></div></details>`;
-    }
-  }
+  h += `<div class="card stack"><h2 style="font-size:1.1rem">十二種角色情境｜自由選看，不限換卡次數</h2><p>先唸上方同組心聲卡，再選與「${esc(product() || "這組產品")}」有關的情境。這些是幫助思考的假設。</p>`;
+  h += cards.map(c => { const rc = ROLE_CARDS[c]; return `<details class="rolecard"><summary>${esc(rc.name)}</summary><p>${esc(rc.say)}</p><p><b>討論：</b>${esc(rc.think)}</p><div class="note">${ROLE_NOTE}</div></details>`; }).join("");
   h += `</div>`;
   if (seg === 2) h += `</details>`;
   // 第二段：整理需求
@@ -546,8 +535,8 @@ function aiView(p) {
 function colorsLegend() { return `<div class="stack small">${Object.entries(COLORS).map(([k, c]) => `<div><span class="dot ${k}"></span> <b>${c.label}（${c.name}）</b>：${esc(c.desc)}</div>`).join("")}<div class="muted">兩種顏色都說得通時，選一個並寫出理由。顏色不是重點，說得出依據才是。</div></div>`; }
 function triView(p) {
   const v = val(p), ed = isEditor(p);
-  let h = memberNote(p);
-  h += `<div class="soft" style="font-size:1.1rem"><b>AI 說：</b>「${esc(p.quote)}」</div>`;
+  let h = `<div class="banner info">每個人各自選一個顏色，寫一句理由，再送出。先自己判斷，再聽同學的想法。</div>`;
+  h += `<div class="soft" style="font-size:1.1rem"><b>待判斷的句子：</b>「${esc(p.quote)}」</div>`;
   h += `<div class="banner wait small"><b>證據：</b>${esc(p.evidence.text)}（看投影）</div>`;
   h += colorsLegend();
   h += `<div class="color3">${Object.entries(COLORS).map(([k, c]) => `<button class="c-${k}" data-act="tri" data-v="${k}" aria-pressed="${v.c === k}" ${dis(ed)}>${c.label}　${c.name}</button>`).join("")}</div>`;
