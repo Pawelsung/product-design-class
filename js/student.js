@@ -287,21 +287,21 @@ function img(name) { return name ? `<img class="st-img" src="${IMAGES[name]}" al
 
 function voteView(p) {
   const v = val(p), ed = isEditor(p);
-  let h = img(p.img);
+  let h = p.panels ? panelImage(p, ps(p)) : img(ps(p).reveal2 && p.revealImg ? p.revealImg : p.img);
   if (p.caption) h += `<p class="muted">${esc(p.caption)}</p>`;
   if (p.intro) h += `<div class="soft small">${esc(p.intro)}</div>`;
-  if (p.intro3) h += `<div class="stack">${p.intro3.map(([a, b]) => `<div class="soft"><b>${esc(a)}</b>　${esc(b)}</div>`).join("")}</div>`;
+  if (p.intro3) h += `<div class="stack">${p.intro3.slice(0, ps(p).step || 0).map(([a, b]) => `<div class="soft"><b>${esc(a)}</b>　${esc(b)}</div>`).join("")}</div>`;
   if (p.question) h += `<h2 style="font-size:1.15rem">${esc(p.question)}</h2>`;
   h += `<div class="big-choices">${p.options.map(o => `<button data-act="vote" data-v="${esc(o)}" aria-pressed="${v.choice === o}" ${dis(ed)}>${esc(o)}</button>`).join("")}</div>`;
   h += statusBox(p);
   const s = ps(p);
-  if (p.lines && s.step) h += `<div class="stack">${p.lines.slice(0, s.step).map(l => `<div class="banner ok">${esc(l)}</div>`).join("")}</div>`;
-  if (p.revealImg && s.reveal2) h += `<h2 style="font-size:1.15rem">${esc(p.revealCaption || "")}</h2>${img(p.revealImg)}`;
+  if (p.lines && s.step) h += `<div class="stack">${p.lines.slice(0, p.intro3 ? Math.max(0, s.step - p.intro3.length) : s.step).map(l => `<div class="banner ok">${esc(l)}</div>`).join("")}</div>`;
+
   return h;
 }
 function wallView(p) {
   const v = val(p), ed = isEditor(p);
-  let h = "";
+  let h = img(p.img);
   if (p.source) h += `<p class="small muted">出處：${esc(p.source)}</p>`;
   h += `<label class="lab" for="w-${p.id}">${esc(p.prompt)}</label><textarea id="w-${p.id}" data-bind="wall" maxlength="${p.max || 100}" placeholder="${esc(p.placeholder || "")}" ${dis(ed)}>${esc(v.text || "")}</textarea>`;
   h += `<div class="row"><button class="btn primary" data-act="send" ${dis(ed && (v.text || "").trim())}>貼到投影</button>${statusBox(p)}</div>`;
@@ -316,9 +316,10 @@ function revealView(p) {
 }
 function defsHTML() { return `<div class="stack">${STAGES.map((s, i) => `<div class="soft"><b style="color:var(--green)">${i + 1}　${s}</b><br>${esc(DESC_CARDS[DESC_ORDER[i]])}</div>`).join("")}</div>`; }
 function infoView(p) {
+  if (p.story) return needStory(p, ps(p));
   let h = "";
   if (p.defs) h += defsHTML();
-  h += img(p.img);
+  h += p.panels ? panelImage(p, ps(p)) : img(p.img);
   if (p.pair) h += `<div class="stack">${p.pair.map(([a, b]) => `<div class="soft"><b style="color:var(--green)">${esc(a)}</b><br>${esc(b)}</div>`).join("")}</div>`;
   const n = ps(p).step || 0;
   if (p.lines && n) h += `<div class="stack">${p.lines.slice(0, n).map(l => `<div class="soft">${esc(l)}</div>`).join("")}</div>`;
@@ -409,7 +410,7 @@ function feedbackView(p) {
 function gloveView(p) {
   const v = val(p), ed = isEditor(p), s = ps(p), round = s.round || 1;
   let h = `<div class="soft"><b>三個動作</b><ol style="margin:6px 0 0 1.2em;padding:0">${GLOVE_ACTIONS.map(a => `<li>${esc(a)}</li>`).join("")}</ol></div>`;
-  h += `<div class="banner info">${s.phase === "reset" ? "恢復道具：瓶蓋轉緊、水倒回瓶子、卡片放回夾鏈袋並壓緊、迴紋針放回桌上" : round === 1 ? "第一輪：戴手套，45 秒" : "第二輪：換人，一樣戴手套，一隻手抓著椅背，只能用單手，45 秒"}</div>`;
+  h += `<div class="banner info">${s.phase === "reset" ? "道具復位・準備第二輪（30 秒）：先把水倒回瓶子，再轉緊瓶蓋。其餘：瓶蓋轉緊、水倒回瓶子、卡片放回夾鏈袋並壓緊、迴紋針放回桌上" : round === 1 ? "第一輪：戴手套，45 秒" : "第二輪：換人，一樣戴手套，一隻手抓著椅背，只能用單手，45 秒"}</div>`;
   h += `<p class="small muted">你是觀察員：每個動作都要選。卡住的寫一句怎麼卡住的。這一頁每個人都可以送出。</p>`;
   [1, 2].forEach(r => {
     if (r === 2 && round < 2) return;
@@ -431,7 +432,7 @@ function voiceView(p) {
   const v = val(p), ed = isEditor(p), prod = product();
   const qs2 = v.unused ? p.unused : p.used;
   const a = v.a || [];
-  let h = `<p class="small muted">每題一句就好，可以用語音輸入。投影上只顯示內容，不顯示座號。</p>`;
+  let h = activityGuide("voice") + `<p class="small muted">每題一句就好，可以用語音輸入。投影上只顯示內容，不顯示座號。</p>`;
   h += `<label class="row"><input type="checkbox" id="v-unused" data-act="unused" ${v.unused ? "checked" : ""} ${dis(ed)}> 我沒用過${esc(prod || "這個產品")}</label>`;
   h += qs2.map((q, i) => `<div><label class="lab" for="v-${i}">${i + 1}. ${esc(fillProduct(q, prod))}${v.unused && i === 2 ? `<span class="chip warn" style="margin-left:6px">這一題會標成「猜的」</span>` : ""}</label><textarea id="v-${i}" data-bind="voice" data-i="${i}" ${dis(ed)}>${esc(a[i] || "")}</textarea></div>`).join("");
   h += `<div class="row"><button class="btn go" data-act="send" ${dis(ed && [0, 1, 2].every(i => (a[i] || "").trim()))}>送出心聲卡</button>${statusBox(p)}</div>`;
@@ -442,7 +443,8 @@ function voiceView(p) {
 function cardsView(p) {
   const s = ps(p), seg = s.seg || 1, row = server(p) || {}, d = row.data || {};
   const cards = d.cards || [];
-  let h = "";
+  let h = activityGuide(seg === 1 ? "cards1" : "cards2");
+  if (seg === 2) h += `<details><summary>查看心聲卡與兩張角色卡（參考資料）</summary>`;
   h += `<div class="card stack"><h2 style="font-size:1.1rem">我們組的心聲卡（${S.voices.length} 張）</h2>`;
   h += S.voices.length ? S.voices.map((vc, i) => `<div class="voicecard"><b>卡 ${i + 1}</b>${vc.unused ? `<span class="chip warn" style="margin-left:6px">沒用過</span>` : ""}<br>${(vc.a || []).map((x, k) => `${esc(x)}${vc.unused && k === 2 ? `<span class="chip warn">猜的</span>` : ""}`).join("<br>")}</div>`).join("")
     : `<p class="muted small">還沒有心聲卡。</p>`;
@@ -463,6 +465,7 @@ function cardsView(p) {
     }
   }
   h += `</div>`;
+  if (seg === 2) h += `</details>`;
   // 第二段：整理需求
   const repB = repSeat(p.slot2);
   h += `<div class="card stack"><h2 style="font-size:1.1rem">需求清單（至少 3 條）</h2>`;
@@ -497,6 +500,10 @@ function aiView(p) {
   const row = server(p) || {}, d = row.data || {}, prod = product();
   const sai = d.ai || {};
   let h = "";
+  h += activityGuide("ai");
+  const own = S.grp.find(r => r.page === "2-7");
+  const ownNeeds = own && own.data && own.data.needs || [];
+  if (ownNeeds.length) h += `<details open><summary>我們上一頁整理的需求（拿來比對）</summary>${ownNeeds.map(n => `<div class="soft">${esc(n.who)}・${esc(n.when)}：${esc(n.need)}</div>`).join("")}</details>`;
   const aiS = aiSeat();
   if (iAmAI() && !sai.handed) {
     const ai = val(p, "ai") || {};

@@ -24,7 +24,7 @@ const ROLE_CARDS = [
 ];
 const ROLE_NOTE = "這是設想的情境，幫我們想出要再確認的需求，不代表這類人都這樣。";
 const IMAGES = {
-  meme1: "img/meme1.png", meme2: "img/meme2.png", meme3: "img/meme3.png", meme6: "img/meme6.png",
+  miniBottle: "img/mini-bottle.svg", meme1: "img/meme1.png", meme2: "img/meme2.png", meme3: "img/meme3.png", meme6: "img/meme6.png",
   meme7: "img/meme7.png", meme8: "img/usb3.svg", usbc: "img/usbc.svg", meme9: "img/meme9.png", meme10: "img/meme10.png",
   meme11: "img/meme11.png", meme12: "img/meme12.png"
 };
@@ -121,7 +121,7 @@ const LESSONS = {
       { id: "2-0", type: "login", time: "上課前", title: "為什麼會有人買這個？", sub: "九年級生活科技｜第二章 產品設計的流程・第 2 節 挑戰二（課本 p.37–41）" },
       { id: "2-1", type: "wall", time: "0–2 分", title: "迷你保溫瓶「喝２口就沒了」到底誰會買？",
         source: "食尚玩家（TVBS），〈迷你保溫瓶「喝２口就沒了」到底誰會買？過來人曝超強用途：在台灣用很適合〉，2025 年 10 月 27 日",
-        sub: "只能裝 120 毫升", prompt: "你覺得誰會買？寫一句", placeholder: "例如：要出門吃藥的人", max: 60,
+        img: "miniBottle", sub: "只能裝 120 毫升（約半杯水）", prompt: "你覺得誰會買？寫一句", placeholder: "例如：要出門吃藥的人", max: 60,
         revealTitle: "揭曉：網友說的用途",
         lines: [
           "出國帶著用，旅館的杯子不知道乾不乾淨",
@@ -131,13 +131,15 @@ const LESSONS = {
           "台灣飲水機很多，隨時可以補水，不用扛一、兩公升"
         ] },
       { id: "2-2", type: "glove", time: "2–8 分", title: "手套挑戰", publish: true },
-      { id: "2-3", type: "info", time: "2–8 分", title: "設計師看到的 vs 使用者看到的", img: "meme10" },
+      { id: "2-3", type: "info", time: "2–8 分", title: "換到使用者的位置看", img: "meme10", panels: ["設計師看到的", "躺著的寶寶看到的"] },
       { id: "2-4", type: "vote", time: "8–11 分", title: "設計者怎麼知道使用者要什麼？", publish: true,
-        intro3: [["實地觀察", "看使用者實際怎麼用"], ["訪談", "直接問使用者的感受"], ["資料分析", "整理大家的紀錄和意見"]],
+        intro3: [["實地觀察", "看剛才卡住的動作：手怎麼握？瓶身有沒有滑動？"], ["訪談", "問操作的人：哪一步最吃力？當時想怎麼做？"], ["資料分析", "整理兩輪卡住的組數和觀察紀錄，找出常見困難。"]],
         foot: "課本 p.38–39",
-        question: "2010 年推出的手機：不能下載 App、不能玩遊戲。你會買嗎？", options: ["會買", "不會買"],
-        lines: ["揭曉：上市 48 天就停賣"] },
-      { id: "2-5", type: "info", time: "11–12 分", title: "想要的功能 ≠ 需求", img: "meme12",
+        question: "長條圖統計了卡住的組數。只看數字，就知道瓶蓋該怎麼修改嗎？", options: ["知道怎麼改", "還要觀察、問人"],
+        lines: ["數字指出哪些操作常卡住，卻不能直接告訴我們原因或修改方法。", "綜合看到的動作、聽到的感受和紀錄，才能提出有根據的需求。"] },
+      { id: "2-4-kin", type: "info", time: "備用案例", optional: true, title: "課本延伸：Microsoft Kin",
+        lines: ["2010 年的 Kin 主打社群聯絡，卻缺少當時智慧型手機常見的 App 擴充能力。", "先問：這支手機想服務誰？這些人真正重視什麼？", "回到課本案例：用觀察、訪談與資料分析，檢查產品假設，而不是只問自己會不會買。"] },
+      { id: "2-5", type: "info", time: "11–12 分", title: "想要的功能 ≠ 需求", story: true,
         lines: [
           "使用者說：「我要更大的水壺。」",
           "追問：「為什麼要更大？什麼時候會不夠？」",
@@ -182,3 +184,9 @@ const LESSONS = {
 function pageById(lesson, id) { return (LESSONS[lesson]?.pages || []).find(p => p.id === id); }
 function answerable(p) { return ["vote", "wall", "sort", "judge", "form", "feedback", "glove", "voice", "cards", "aicompare", "tricolor", "pickone"].includes(p.type); }
 function productText(prod) { return prod ? (prod.choice === "其他" ? (prod.other || "其他") : prod.choice) : ""; }
+
+// 雙欄迷因先看一側，由老師切換另一側；不提前顯示結論。
+for (const p of LESSONS[1].pages) {
+  if (["meme1", "meme2", "meme7"].includes(p.img)) p.panels = ["期望", "現實"];
+  if (p.img === "meme3") p.panels = ["原本的門", "改良後的門"];
+}
