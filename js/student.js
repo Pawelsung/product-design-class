@@ -81,6 +81,8 @@ function product() { const pr = S.session.state && S.session.state.products; ret
 function server(p) { const list = p.scope === "g" ? S.grp : S.mine; return list.find(r => r.page === p.id); }
 function isOpen(p) { return !!ps(p).open; }
 
+/* 老師重設後，舊草稿不能再跑回來：草稿的鑰匙帶上重設時間 */
+function dkey(p, part) { const st = S.session.state || {}; return p.id + (part ? "." + part : "") + "@" + (st.resetAt || 0) + "." + (pstate(st, p.id).resetAt || 0); }
 /* 本地草稿：編輯者用本地值，其他組員一律看伺服器的值 */
 function isEditor(p, part) {
   if (!isOpen(p)) return false;
@@ -94,7 +96,7 @@ function isEditor(p, part) {
   return iAmRep(p.slot);
 }
 function val(p, part) {
-  const key = p.id + (part ? "." + part : "");
+  const key = dkey(p, part);
   const sd = (server(p) || {}).data || {};
   const sv = part ? sd[part] : sd;
   if (!isEditor(p, part) || !(key in S.local)) {
@@ -105,7 +107,7 @@ function val(p, part) {
 }
 function hasContent(v) { return v !== null && v !== undefined && JSON.stringify(v) !== "{}" && JSON.stringify(v) !== "null"; }
 function setVal(p, part, v) {
-  const key = p.id + (part ? "." + part : "");
+  const key = dkey(p, part);
   S.local[key] = v;
   LS.set(`draft:${CODE}:${S.seat}:${key}`, v);
 }
@@ -120,13 +122,13 @@ function fillDefaults(p, v) {
 const draftTimers = {};
 function slotFor(p, part) { if (p.type === "cards" && part === "needs") return p.slot2; return p.slot || null; }
 function queueDraft(p, part) {
-  const key = p.id + (part ? "." + part : "");
+  const key = dkey(p, part);
   clearTimeout(draftTimers[key]);
   S.status[key] = "draft"; renderLive();
   draftTimers[key] = setTimeout(() => save(p, part, false), 900);
 }
 async function save(p, part, send) {
-  const key = p.id + (part ? "." + part : "");
+  const key = dkey(p, part);
   clearTimeout(draftTimers[key]);
   const value = S.local[key];
   const req = send ? uid() : null;
@@ -153,7 +155,7 @@ async function save(p, part, send) {
   poll();
 }
 function statusHTML(p, part) {
-  const key = p.id + (part ? "." + part : "");
+  const key = dkey(p, part);
   const st = S.status[key] || "";
   const row = server(p);
   const local = S.local[key];
@@ -383,7 +385,7 @@ function formView(p) {
       h += `<div><label class="lab" for="f-${f.key}">${esc(f.label)}</label><input type="text" id="f-${f.key}" data-bind="f" data-k="${f.key}" placeholder="${esc(f.placeholder || "")}" value="${esc(v[f.key] || "")}" ${dis(ed)}></div>`;
     } else if (f.kind === "stages") {
       const a = v[f.key] || [];
-      h += `<div><label class="lab">${esc(f.label)}</label><div class="stack">${STAGES.map((s, i) => `<label class="row" for="f-st${i}"><span style="width:7em;font-weight:700;color:var(--green)">${s}</span><input type="text" id="f-st${i}" style="flex:1;min-width:0" data-bind="f" data-k="${f.key}.${i}" value="${esc(a[i] || "")}" ${dis(ed)}></label>`).join("")}</div></div>`;
+      h += `<div><label class="lab">${esc(f.label)}</label><p class="small muted" style="margin:0 0 6px">還不確定的階段，可以先寫「還不確定，要再查」。後面幾節還會再修改。</p><div class="stack">${STAGES.map((s, i) => { const hint = f.hints && f.hints[i]; return `<div class="stagebox"><label for="f-st${i}"><b>${i + 1}　${s}</b>${hint ? `<span>${esc(hint[0])}</span>` : ""}</label><input type="text" id="f-st${i}" data-bind="f" data-k="${f.key}.${i}" placeholder="${esc(hint ? hint[1] : "")}" value="${esc(a[i] || "")}" ${dis(ed)}></div>`; }).join("")}</div></div>`;
     } else if (f.kind === "list3") {
       const a = v[f.key] || [];
       h += `<div><label class="lab">${esc(f.label)}</label><div class="stack">${[0, 1, 2].map(i => `<input type="text" id="f-l${i}" data-bind="f" data-k="${f.key}.${i}" placeholder="需求 ${i + 1}" value="${esc(a[i] || "")}" ${dis(ed)}>`).join("")}</div></div>`;

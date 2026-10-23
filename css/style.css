@@ -352,3 +352,17 @@ body.screen .sc:not(.sc-cover) { background-color: #FBFCFB; background-image: li
 .sc-imgwrap > img { min-width: 0; flex: 0 1 auto; max-width: calc(100% - 33vw); align-self: center; }
 .sc-imgwrap .side { flex: 0 0 30vw; }
 .sc-imgwrap .side .sc-big:first-child { line-height: 1.35; }
+
+.stagebox { display: grid; grid-template-columns: minmax(0, 15em) minmax(0, 1fr); gap: 10px; align-items: center; background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.stagebox label { display: flex; flex-direction: column; gap: 2px; }
+.stagebox label b { color: var(--green); }
+.stagebox label span { font-size: .82rem; color: var(--muted); line-height: 1.4; }
+@media (max-width: 640px) { .stagebox { grid-template-columns: minmax(0, 1fr); } }
+.sc-focus { display: flex; flex-direction: column; gap: 1.2vw; flex: 1; min-height: 0; }
+.sc-focus-head { display: flex; align-items: center; gap: 1.2vw; }
+.sc-focus-head .sc-tag { font-size: 1.5vw; padding: .3vw 1.2vw; }
+.sc-focus-head b { font-size: 3vw; color: var(--green); }
+.sc-stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1vw; }
+.sc-stages div { background: rgba(233, 239, 235, .92); border-radius: 1vw; padding: 1.1vw 1.3vw; display: flex; flex-direction: column; gap: .4vw; font-size: 1.55vw; }
+.sc-stages b { color: var(--green); font-size: 1.7vw; }
+.sc-stages b i { font-style: normal; font-family: var(--mono); margin-right: .5vw; }

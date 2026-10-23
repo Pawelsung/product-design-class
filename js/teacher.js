@@ -88,7 +88,7 @@ const act = {
   }),
   seg: n => patchState(s => { pg(s, "2-7").seg = n; }),
   hold: (g, id) => patchState(s => { s.hold = s.hold || {}; if (id) s.hold[g] = id; else delete s.hold[g]; }),
-  focus: g => patchState(s => { const x = pg(s, "2-10"); x.focus = x.focus === g ? null : g; })
+  focus: (id, g) => patchState(s => { const x = pg(s, id); x.focus = x.focus === g ? null : g; })
 };
 async function teacherWrite(page, owner, part, value, extra) {
   const r = await rpc("lesson_teacher_write", Object.assign({ p_token: T.token, p_id: T.sid, p_page: page, p_owner: owner, p_part: part, p_value: value, p_set_sent: false, p_hidden: null }, extra || {}));
@@ -139,7 +139,7 @@ function sessionsView() {
   if (!f) {
     h += `<button class="btn primary block" data-act="newform">開新的一堂課</button>`;
     h += `<div class="t-sec"><h3>最近的課堂</h3><div class="t-list">${T.sessions.length ? T.sessions.map(s => `<div class="it"><span><b class="mono">${s.code}</b>　第 ${s.lesson} 節　${esc(s.label)}<br><span class="small muted">${new Date(s.created_at).toLocaleString("zh-TW")}${s.active ? "" : "・已結束"}</span></span>
-      <span class="row"><a class="btn sm" href="?s=${s.id}">控制台</a><a class="btn sm ghost" href="?s=${s.id}&mode=screen" target="_blank" rel="noopener">投影</a></span></div>`).join("") : `<p class="muted small">還沒有課堂。</p>`}</div></div>`;
+      <span class="row"><a class="btn sm" href="?s=${s.id}">控制台</a><a class="btn sm ghost" href="?s=${s.id}&mode=screen" target="_blank" rel="noopener">投影</a><button class="btn sm ghost" data-act="archive" data-id="${s.id}">移除</button></span></div>`).join("") : `<p class="muted small">還沒有課堂。</p>`}</div></div>`;
   } else {
     const roster = f.groupsText;
     h += `<h2>開新的一堂課</h2>
@@ -200,6 +200,7 @@ function classTab(p) {
   let h = `<div class="t-now"><span class="small muted mono">${p.id}・${esc(p.time)}　第 ${i + 1} / ${pages.length} 頁</span><span class="t">${esc(p.title)}</span><span class="small muted">投影和全班平板都在這一頁</span></div>`;
   h += `<div class="t-nav"><button class="btn" data-act="go" data-v="${pages[i - 1] ? pages[i - 1].id : ""}" ${dis(i > 0)}>上一頁</button><button class="btn primary" data-act="go" data-v="${pages[i + 1] ? pages[i + 1].id : ""}" ${dis(i < pages.length - 1)}>下一頁</button></div>`;
   h += controls(p, x);
+  if (answerable(p)) h += `<details class="box"><summary>重設這一頁</summary><div class="stack" style="margin-top:8px"><p class="small">清空這一頁所有作答${p.type === "sort" ? "和搶答次數" : ""}，頁面回到「還沒開始」。學生不用重新登入。</p><button class="btn stop" data-act="resetpage">重設 ${esc(p.id)}</button></div></details>`;
   const notes = notesFor(p);
   if (notes) h += `<div class="t-notes"><b>老師限定</b>${notes}</div>`;
   h += `<div class="t-sec"><h3>計時</h3><div class="pillset">${[[30, "30 秒"], [45, "45 秒"], [60, "1 分"], [120, "2 分"], [180, "3 分"], [300, "5 分"], [360, "6 分"], [480, "8 分"]].map(([v, l]) => `<button data-act="timer" data-v="${v}">${l}</button>`).join("")}<button data-act="timer" data-v="0">清除</button></div></div>`;
@@ -236,7 +237,7 @@ function controls(p, x) {
   }
   if (p.type === "cards") h += `<div class="row"><button class="btn ${(x.seg || 1) === 1 ? "primary" : ""}" data-act="seg" data-v="1">第一段：唸卡、抽卡</button><button class="btn ${x.seg === 2 ? "primary" : ""}" data-act="seg" data-v="2">第二段：整理需求</button></div>`;
   if (p.type === "aicompare") h += aiControls();
-  if (p.type === "pickone") h += `<div class="t-sec"><h3>放大某一組</h3><div class="pillset">${gids().map(g => `<button data-act="focus" data-v="${g}" aria-pressed="${x.focus === g}">第 ${g} 組</button>`).join("")}</div></div>`;
+  if (p.type === "pickone" || p.type === "form") h += `<div class="t-sec"><h3>放大某一組到投影（再按一次收回）</h3><div class="pillset">${gids().map(g => `<button data-act="focus" data-v="${g}" aria-pressed="${x.focus === g}">第 ${g} 組</button>`).join("")}</div></div>`;
   if (p.type === "wall" || p.type === "voice") h += moderation(p);
   return h;
 }
@@ -342,6 +343,7 @@ function dataTab() {
     <p class="small muted">在教室電腦打開老師網址、登入後點這裡，按 F11 全螢幕。</p></div>
     <div class="t-sec"><h3>桌上的 QR code</h3>${st().classKey ? `<a class="btn block" href="qr.html?k=${encodeURIComponent(st().classKey)}&l=${encodeURIComponent(T.session.class_label)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">打開列印頁（班級代號 ${esc(st().classKey)}）</a><p class="small muted">同一個班每節都用同一張，印一次就好。</p>` : `<p class="small muted">這堂課開課時沒有填班級代號，所以沒有固定的 QR code。下次開課時填上就有了。</p>`}</div>
     <div class="t-sec"><h3>下載作答資料（CSV，可用 Excel 開）</h3><button class="btn" data-act="csv" data-v="${p.id}">下載這一頁（${p.id}）</button><button class="btn" data-act="csv" data-v="">下載這一節全部</button></div>
+    <div class="t-sec"><h3>整堂課重來</h3><p class="small muted">清空這堂課所有作答，學生要重新輸入座號，頁面回到第一頁。分組、產品和課堂代碼保留。</p><button class="btn stop" data-act="resetall">整堂課重來</button></div>
     <div class="t-sec"><h3>課堂</h3><button class="btn ghost" data-act="sessions">回課堂清單</button><button class="btn stop" data-act="close">結束這堂課（學生不能再登入）</button></div>
     <div class="t-sec"><h3>老師 PIN</h3><div class="row"><input type="password" id="newpin" inputmode="numeric" placeholder="新 PIN（至少 6 碼）" style="flex:1;min-width:0"><button class="btn" data-act="setpin">更改</button></div></div>`;
 }
@@ -457,9 +459,10 @@ function screenBody(p, x) {
     case "sort": return sortScreen(x);
     case "judge": return judgeScreen(p, x);
     case "form": {
+      if (x.focus) return formFocus(p, x.focus);
       return `<div class="sc-groups">${G.map(g => { const r = groupResponse(T.responses, p.id, g); const d = r && r.sent;
         if (!d) return `<div class="sc-g wait"><h3>第 ${g} 組</h3><span>${PS(p.id).open ? "討論中…" : "等待開始"}</span></div>`;
-        if (p.id === "1-8") return `<div class="sc-g"><h3>第 ${g} 組</h3><b style="font-size:2vw">${esc(productText(d.product))}</b><span>${esc(d.pain || "")}</span></div>`;
+        if (p.id === "1-8") return `<div class="sc-g"><h3>第 ${g} 組</h3><b style="font-size:2vw">${esc(productText(d.product))}</b><span>${esc(d.pain || "")}</span><span class="muted" style="font-size:1.15vw">六個階段已寫 ${(d.stages || []).filter(x => (x || "").trim()).length} / 6 格</span></div>`;
         return `<div class="sc-g"><h3>第 ${g} 組</h3><b style="font-size:1.7vw">${esc(d.target || "")}</b><span class="muted">依 ${esc(d.basis || "")}</span><span>${(d.needs || []).filter(Boolean).map((n, i) => `${i + 1}. ${esc(n)}`).join("<br>")}</span></div>`; }).join("")}</div>`;
     }
     case "feedback": {
@@ -489,6 +492,17 @@ function screenBody(p, x) {
     }
   }
   return "";
+}
+function formFocus(p, g) {
+  const r = groupResponse(T.responses, p.id, g); const d = (r && (r.sent || r.data)) || {};
+  if (p.id === "1-8") {
+    return `<div class="sc-focus"><div class="sc-focus-head"><span class="sc-tag gold">第 ${g} 組</span><b>${esc(productText(d.product) || "還沒選產品")}</b></div>
+      <div class="sc-hint"><b>最不方便的情況　</b>${esc(d.pain || "（還沒寫）")}</div>
+      <div class="sc-stages">${STAGES.map((s, i) => `<div><b><i>${i + 1}</i>${s}</b><span>${esc((d.stages || [])[i] || "（還沒寫）")}</span></div>`).join("")}</div></div>`;
+  }
+  return `<div class="sc-focus"><div class="sc-focus-head"><span class="sc-tag gold">第 ${g} 組</span><b>${esc(d.target || "（還沒寫）")}</b></div>
+    <div class="sc-hint"><b>依什麼特性分　</b>${esc(d.basis || "")}</div>
+    <ul class="sc-lines" style="padding:0">${(d.needs || []).filter(Boolean).map((n, i) => `<li>下節想確認的需求 ${i + 1}：${esc(n)}</li>`).join("")}</ul></div>`;
 }
 function sortScreen(x) {
   const sm = sortSummary(T.responses, groupsMap());
@@ -609,7 +623,7 @@ document.addEventListener("click", async e => {
     case "timer": act.timer(+t.dataset.v); break;
     case "glove": act.glove(t.dataset.v); break;
     case "seg": act.seg(+t.dataset.v); break;
-    case "focus": act.focus(+t.dataset.v); break;
+    case "focus": act.focus(p.id, +t.dataset.v); break;
     case "hold": { const g = +t.dataset.g; act.hold(g, st().hold && st().hold[g] ? null : "2-8"); break; }
     case "dev": {
       const r = await rpc("lesson_teacher_device", { p_token: T.token, p_id: T.sid, p_device: t.dataset.d, p_action: t.dataset.v });
@@ -646,6 +660,18 @@ document.addEventListener("click", async e => {
       toast(r && r.ok ? "已重新排代表" : "沒有成功"); await refresh(); break;
     }
     case "csv": downloadCSV(t.dataset.v); break;
+    case "resetpage": case "resetall": case "archive": {
+      if (t.dataset.confirm !== "1") { const old = t.textContent; t.dataset.confirm = "1"; t.textContent = "再按一次確定"; setTimeout(() => { t.dataset.confirm = ""; t.textContent = old; }, 4000); break; }
+      t.disabled = true;
+      let r;
+      if (a === "archive") { r = await rpc("lesson_teacher_archive", { p_token: T.token, p_id: t.dataset.id }); toast(r && r.ok ? "已從清單移除" : "沒有成功"); await loadSessions(); break; }
+      const s2 = JSON.parse(JSON.stringify(T.session.state || {})); s2.pages = s2.pages || {};
+      if (a === "resetpage") { s2.pages[p.id] = { resetAt: Clock.now() }; if (p.id === "2-2" || p.type === "glove") s2.timer = null; }
+      else { const keep = { products: s2.products, classKey: s2.classKey }; Object.keys(s2).forEach(k => delete s2[k]); Object.assign(s2, keep, { page: L().pages[0].id, pages: {}, resetAt: Clock.now() }); }
+      r = await rpc("lesson_teacher_reset", { p_token: T.token, p_id: T.sid, p_page: a === "resetpage" ? p.id : null, p_state: s2, p_logout: a === "resetall" });
+      toast(r && r.ok ? (a === "resetpage" ? `${p.id} 已重設` : "整堂課已重設，請學生重新輸入座號") : "沒有成功，請再按一次");
+      await refresh(); break;
+    }
     case "close": {
       if (t.dataset.confirm !== "1") { t.dataset.confirm = "1"; t.textContent = "再按一次確定結束"; setTimeout(() => { t.dataset.confirm = ""; t.textContent = "結束這堂課（學生不能再登入）"; }, 4000); break; }
       const r = await rpc("lesson_teacher_close", { p_token: T.token, p_id: T.sid, p_active: false });
