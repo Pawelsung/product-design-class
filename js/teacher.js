@@ -231,7 +231,7 @@ function controls(p, x) {
     h += `</div>`;
   }
   if (p.revealImg) h += `<div class="row"><button class="btn ${x.reveal2 ? "" : "primary"}" data-act="reveal2">${x.reveal2 ? "換回原本的圖" : "解釋時：顯示 " + esc(p.revealCaption)}</button></div>`;
-  const lines = p.type === "reveal" ? p.rows : p.intro3 ? [...p.intro3, ...p.lines] : p.lines;
+  const lines = p.type === "reveal" ? p.rows : p.intro3 ? [...p.intro3, ...p.lines] : p.story ? p.lines.slice(1) : p.lines;
   if (lines && lines.length) {
     const n = x.step || 0;
     const label = p.type === "reveal" ? "揭曉下一列" : p.id === "2-1" ? (n ? "下一行" : "揭曉") : p.id === "2-4" ? "揭曉下一個調查線索" : "下一行";
@@ -453,6 +453,7 @@ function screenBody(p, x) {
     case "reveal": return `<div class="sc-map"><b class="muted">${esc(p.left)}</b><span></span><b class="muted">${esc(p.right)}</b>${p.rows.map(([a, b], i) => `<span class="l">${esc(a)}</span><span class="arr">→</span><span class="r ${i < (x.step || 0) ? "" : "hid"}">${i < (x.step || 0) ? `${i + 1}　${esc(b)}` : "？"}</span>`).join("")}</div>`;
     case "info": {
       let h = "";
+      if (p.story) return needStory(p, x);
       if (p.panels) return `<div class="sc-imgwrap">${panelImage(p, x)}</div>`;
       if (p.lines && !p.img) h += `<ul class="sc-lines">${p.lines.slice(0, x.step || 0).map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;
       if (p.defs) h += `<div class="sc-defs">${STAGES.map((s, i) => `<div class="sc-def"><b><i>${i + 1}</i>${s}</b><span>${esc(DESC_CARDS[DESC_ORDER[i]])}</span></div>`).join("")}</div>`;
@@ -477,15 +478,15 @@ function screenBody(p, x) {
     case "glove": return gloveScreen(x);
     case "voice": {
       const v = personResponses(T.responses, p.id).filter(r => r.sent && !r.hidden).sort((a, b) => a.sent_ms - b.sent_ms);
-      return `<div class="sc-hint">心聲牆・已交 ${v.length} 張・不顯示座號</div><div class="sc-notes">${v.slice(-15).map(r => `<div class="sc-note v">${(r.sent.a || []).map(t => `<div>${esc(t)}</div>`).join("")}</div>`).join("")}</div>`;
+      return activityGuide("voice") + `<div class="sc-hint">心聲牆・已交 ${v.length} 張・不顯示座號</div><div class="sc-notes">${v.slice(-15).map(r => `<div class="sc-note v">${(r.sent.a || []).map(t => `<div>${esc(t)}</div>`).join("")}</div>`).join("")}</div>`;
     }
     case "cards": {
       const seg = x.seg || 1;
-      return `<div class="sc-hint">${seg === 1 ? "第一段：一張一張唸心聲卡，再抽兩張角色卡" : "第二段：整理需求清單，每條都要寫來源"}</div><div class="sc-groups">${G.map(g => { const r = groupResponse(T.responses, p.id, g); const d = (r && r.data) || {}; const needs = d.needs || [];
+      return activityGuide(seg === 1 ? "cards1" : "cards2") + `<div class="sc-hint">${seg === 1 ? "第一段：一張一張唸心聲卡，再抽兩張角色卡" : "第二段：整理需求清單，每條都要寫來源"}</div><div class="sc-groups">${G.map(g => { const r = groupResponse(T.responses, p.id, g); const d = (r && r.data) || {}; const needs = d.needs || [];
         const onlyGuess = needs.filter(n => n.src && n.src.guess && !(n.src.voice || []).length && !(n.src.role || []).length && !n.src.glove).length;
-        return `<div class="sc-g"><h3>第 ${g} 組 ${onlyGuess ? `<span class="sc-tag y">${onlyGuess} 條只靠猜</span>` : r && r.sent ? `<span class="sc-tag ok">需求 ${needs.length} 條</span>` : ""}</h3>${(d.cards || []).map(c => `<span>${esc(ROLE_CARDS[c].name)}</span>`).join("") || `<span class="muted">還沒抽卡</span>`}</div>`; }).join("")}</div>`;
+        return `<div class="sc-g"><h3>第 ${g} 組 ${onlyGuess ? `<span class="sc-tag y">${onlyGuess} 條只靠猜</span>` : r && r.sent ? `<span class="sc-tag ok">需求 ${needs.length} 條</span>` : ""}</h3>${seg === 1 ? ((d.cards || []).map(c => `<span>${esc(ROLE_CARDS[c].name)}</span>`).join("") || `<span class="muted">還沒抽卡</span>`) : (needs.length ? needs.map(n => `<span><b>${esc(n.who || "誰？")}</b>・${esc(n.when || "情境待補")}：${esc(n.need || "需求待補")}</span>`).join("") : `<span class="muted">等待整理代表填寫至少三條需求</span>`)}</div>`; }).join("")}</div>`;
     }
-    case "aicompare": return `<div class="sc-hint">AI 操作員問 Gemini → 貼回網站 → 全組逐條判斷：我們有想到嗎？有根據嗎？</div><div class="sc-groups">${G.map(g => { const r = groupResponse(T.responses, p.id, g); const ai = (r && r.data && r.data.ai) || {}; const j = (r && r.data && r.data.judge) || {}; const lines = ai.lines || [];
+    case "aicompare": return activityGuide("ai") + `<div class="sc-hint">各組進度｜回到平板依上方三步驟完成</div><div class="sc-groups">${G.map(g => { const r = groupResponse(T.responses, p.id, g); const ai = (r && r.data && r.data.ai) || {}; const j = (r && r.data && r.data.judge) || {}; const lines = ai.lines || [];
         const done = lines.filter(l => j[l] && j[l].t && j[l].c).length;
         const cs = { green: 0, yellow: 0, red: 0 }; lines.forEach(l => { if (j[l] && cs[j[l].c] !== undefined) cs[j[l].c]++; });
         return `<div class="sc-g ${r && r.sent ? "ok" : ""}"><h3>第 ${g} 組 <span class="sc-tag ${r && r.sent ? "ok" : ai.handed ? "y" : ""}">${r && r.sent ? "已送出" : ai.handed ? `判斷中 ${done}/${lines.length}` : lines.length ? "貼上中" : "問 AI 中"}</span></h3>${ai.handed ? `<span><span class="dot green"></span> ${cs.green}　<span class="dot yellow"></span> ${cs.yellow}　<span class="dot red"></span> ${cs.red}</span>` : ""}</div>`; }).join("")}</div>`;

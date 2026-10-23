@@ -316,6 +316,7 @@ function revealView(p) {
 }
 function defsHTML() { return `<div class="stack">${STAGES.map((s, i) => `<div class="soft"><b style="color:var(--green)">${i + 1}　${s}</b><br>${esc(DESC_CARDS[DESC_ORDER[i]])}</div>`).join("")}</div>`; }
 function infoView(p) {
+  if (p.story) return needStory(p, ps(p));
   let h = "";
   if (p.defs) h += defsHTML();
   h += p.panels ? panelImage(p, ps(p)) : img(p.img);
@@ -431,7 +432,7 @@ function voiceView(p) {
   const v = val(p), ed = isEditor(p), prod = product();
   const qs2 = v.unused ? p.unused : p.used;
   const a = v.a || [];
-  let h = `<p class="small muted">每題一句就好，可以用語音輸入。投影上只顯示內容，不顯示座號。</p>`;
+  let h = activityGuide("voice") + `<p class="small muted">每題一句就好，可以用語音輸入。投影上只顯示內容，不顯示座號。</p>`;
   h += `<label class="row"><input type="checkbox" id="v-unused" data-act="unused" ${v.unused ? "checked" : ""} ${dis(ed)}> 我沒用過${esc(prod || "這個產品")}</label>`;
   h += qs2.map((q, i) => `<div><label class="lab" for="v-${i}">${i + 1}. ${esc(fillProduct(q, prod))}${v.unused && i === 2 ? `<span class="chip warn" style="margin-left:6px">這一題會標成「猜的」</span>` : ""}</label><textarea id="v-${i}" data-bind="voice" data-i="${i}" ${dis(ed)}>${esc(a[i] || "")}</textarea></div>`).join("");
   h += `<div class="row"><button class="btn go" data-act="send" ${dis(ed && [0, 1, 2].every(i => (a[i] || "").trim()))}>送出心聲卡</button>${statusBox(p)}</div>`;
@@ -442,7 +443,8 @@ function voiceView(p) {
 function cardsView(p) {
   const s = ps(p), seg = s.seg || 1, row = server(p) || {}, d = row.data || {};
   const cards = d.cards || [];
-  let h = "";
+  let h = activityGuide(seg === 1 ? "cards1" : "cards2");
+  if (seg === 2) h += `<details><summary>查看心聲卡與兩張角色卡（參考資料）</summary>`;
   h += `<div class="card stack"><h2 style="font-size:1.1rem">我們組的心聲卡（${S.voices.length} 張）</h2>`;
   h += S.voices.length ? S.voices.map((vc, i) => `<div class="voicecard"><b>卡 ${i + 1}</b>${vc.unused ? `<span class="chip warn" style="margin-left:6px">沒用過</span>` : ""}<br>${(vc.a || []).map((x, k) => `${esc(x)}${vc.unused && k === 2 ? `<span class="chip warn">猜的</span>` : ""}`).join("<br>")}</div>`).join("")
     : `<p class="muted small">還沒有心聲卡。</p>`;
@@ -463,6 +465,7 @@ function cardsView(p) {
     }
   }
   h += `</div>`;
+  if (seg === 2) h += `</details>`;
   // 第二段：整理需求
   const repB = repSeat(p.slot2);
   h += `<div class="card stack"><h2 style="font-size:1.1rem">需求清單（至少 3 條）</h2>`;
@@ -497,6 +500,10 @@ function aiView(p) {
   const row = server(p) || {}, d = row.data || {}, prod = product();
   const sai = d.ai || {};
   let h = "";
+  h += activityGuide("ai");
+  const own = S.grp.find(r => r.page === "2-7");
+  const ownNeeds = own && own.data && own.data.needs || [];
+  if (ownNeeds.length) h += `<details open><summary>我們上一頁整理的需求（拿來比對）</summary>${ownNeeds.map(n => `<div class="soft">${esc(n.who)}・${esc(n.when)}：${esc(n.need)}</div>`).join("")}</details>`;
   const aiS = aiSeat();
   if (iAmAI() && !sai.handed) {
     const ai = val(p, "ai") || {};

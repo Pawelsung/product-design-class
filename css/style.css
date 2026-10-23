@@ -373,3 +373,18 @@ body.screen .sc:not(.sc-cover) { background-color: #FBFCFB; background-image: li
 .meme-crop.side-1 img { left:-100%; }
 .meme-panel figcaption { text-align:center; margin:.5em 0; font-weight:700; }
 .sc-imgwrap .meme-panel { width:min(42vw, 56vh); }
+
+.activity-guide { background:var(--card, #f0f5f1); padding:16px 20px; border-radius:14px; }
+.activity-guide h2 { font-size:1.15rem; margin:0 0 .6em; }
+.activity-guide ol { margin:0; padding-left:1.5em; display:grid; gap:.5em; }
+.guide-example { margin-top:.8em; padding-top:.7em; border-top:1px solid #b8c8bd; }
+.screen .activity-guide { padding:1.2vw 1.5vw; font-size:1.7vw; }
+.screen .activity-guide h2 { font-size:2.1vw; }
+.screen .activity-guide ol { grid-template-columns:repeat(3,minmax(0,1fr)); gap:2vw; }
+.screen .guide-example { font-size:1.5vw; }
+.need-story { background:#f0f5f1; color:#203e32; padding:24px; border-radius:20px; }
+.need-story blockquote { margin:1em 0; font-size:1.8rem; font-weight:800; line-height:1.6; }
+.story-label { color:#2d6952; font-weight:700; }
+.screen .need-story { padding:3vw 5vw; flex:1; display:flex; flex-direction:column; justify-content:center; }
+.screen .need-story blockquote { font-size:3.5vw; }
+.screen .need-story p, .screen .story-label { font-size:1.8vw; }

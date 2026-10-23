@@ -171,3 +171,20 @@ function panelImage(p, state) {
   return `<figure class="meme-panel"><div class="meme-crop side-${side}"><img src="${IMAGES[p.img]}" alt="${esc(p.panels[side])}"></div><figcaption>${esc(p.panels[side])}（${side + 1}/2）</figcaption></figure>`;
 }
 function gloveCanPublish(x) { return x.round === 2 && x.phase === "r2" && x.ended && !x.open; }
+
+function activityGuide(kind) {
+  const guides = {
+    voice: ["每人寫一張自己的使用經驗", ["打開平板，確認你們組要改造的產品。", "各寫一句：什麼時候用？哪次最不方便？希望怎麼改？", "按「送出心聲卡」。沒用過就勾選「我沒用過」，寫觀察或想問的問題。"], "例｜水壺：下午上課時 → 水喝完又不方便離座 → 希望座位上一直有水喝。"],
+    cards1: ["先聽真實經驗，再換位思考", ["唸卡代表依序唸出組員的心聲卡，大家找出共同困難。", "代表按「抽卡」，取得兩張角色卡，逐張討論這個人用產品可能遇到什麼困難。", "老師切到第二段後，由整理代表寫至少三條需求，並勾選來源。"], "角色卡固定兩張；換卡只替換其中一張，不會增加張數。角色情境是待查證的假設。"],
+    cards2: ["把討論變成至少三條需求", ["全組討論：誰，在什麼情況下，需要什麼？", "整理代表在平板填寫至少三條，勾選心聲卡、角色卡或手套挑戰等來源。", "按「送出需求清單」。其他組員一起檢查：這是需要達成的事，還是直接指定功能？"], "例｜上課一整天的學生，在下午的座位上，需要隨時喝到足夠的水。"],
+    ai: ["請 AI 補想法，再用你們的證據檢查它", ["AI 操作員：在平板按「複製問法」→ 開 Gemini 貼上 → 把回答貼回網站 →「交給全組判斷」。", "全組：拿上一頁的需求清單逐條比較，選「有想到／沒有想到」。", "判斷代表：每條選綠（有根據）、黃（要查證）或紅（刻板印象），全部完成後按「送出判斷」。"], "例｜AI 說「女生都喜歡粉紅水壺」：沒有資料，而且把所有女生說成一樣 → 紅。AI 多說一條，不代表它說對了。"]
+  };
+  const [title, steps, example] = guides[kind];
+  return `<section class="activity-guide"><h2>${esc(title)}</h2><ol>${steps.map(t => `<li>${esc(t)}</li>`).join("")}</ol><div class="guide-example">${esc(example)}</div></section>`;
+}
+function needStory(p, state) {
+  const n = Math.min(p.lines.length - 1, state.step || 0);
+  const i = n;
+  const labels = ["先聽使用者說", "追問情境", "聽到真正的困難", "確認理解", "整理成需求", "再想解決方法"];
+  return `<section class="need-story"><div class="story-label">${esc(labels[i])} · ${i + 1}/${p.lines.length}</div><blockquote>${esc(p.lines[i])}</blockquote><p>${n === 0 ? "先想一想：更大，是需求本身，還是一種做法？老師按「下一行」開始追問。" : i < 4 ? "先別急著決定功能，繼續問：為什麼？什麼情況下？" : "需求說明要達成什麼；功能是解決它的一種方法。"}</p></section>`;
+}
