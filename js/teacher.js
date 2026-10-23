@@ -227,6 +227,7 @@ function controls(p, x) {
     if (pub) h += `<button class="btn ${x.published ? "" : "gold"}" data-act="publish">${x.published ? "收起結果" : p.type === "sort" ? "公布答案" : "公布"}</button>`;
     h += `</div>`;
   }
+  if (p.revealImg) h += `<div class="row"><button class="btn ${x.reveal2 ? "" : "primary"}" data-act="reveal2">${x.reveal2 ? "換回原本的圖" : "解釋時：顯示 " + esc(p.revealCaption)}</button></div>`;
   const lines = p.type === "reveal" ? p.rows : p.lines;
   if (lines && lines.length) {
     const n = x.step || 0;
@@ -432,8 +433,9 @@ function screenBody(p, x) {
       if (p.intro3) {
         return `<div class="sc-defs">${p.intro3.map(([a, b]) => `<div class="sc-def"><b>${esc(a)}</b><span>${esc(b)}</span></div>`).join("")}</div><div class="sc-hint">${esc(p.question)}</div>${result}${x.step ? `<ul class="sc-lines">${p.lines.slice(0, x.step).map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}`;
       }
-      const mainImg = x.published && p.revealImg ? p.revealImg : p.img;
-      return `<div class="sc-imgwrap"><img src="${IMAGES[mainImg]}" alt=""><div class="side">${p.caption ? `<div class="sc-big">${esc(x.published && p.revealCaption ? p.revealCaption : p.caption)}</div>` : ""}${p.intro ? `<div class="sc-hint" style="font-size:1.25vw">${esc(p.intro)}</div>` : ""}${p.question ? `<div class="sc-big" style="font-size:1.7vw">${esc(p.question)}</div>` : ""}${result}</div></div>`;
+      const showReveal = p.revealImg && x.reveal2;
+      const mainImg = showReveal ? p.revealImg : p.img;
+      return `<div class="sc-imgwrap"><img src="${IMAGES[mainImg]}" alt=""><div class="side">${p.caption ? `<div class="sc-big">${esc(showReveal ? p.revealCaption : p.caption)}</div>` : ""}${p.intro ? `<div class="sc-hint" style="font-size:1.25vw">${esc(p.intro)}</div>` : ""}${p.question ? `<div class="sc-big" style="font-size:1.7vw">${esc(p.question)}</div>` : ""}${result}</div></div>`;
     }
     case "wall": {
       const notes = personResponses(T.responses, p.id).filter(r => r.sent && !r.hidden && (r.sent.text || "").trim()).sort((a, b) => a.sent_ms - b.sent_ms);
@@ -603,6 +605,7 @@ document.addEventListener("click", async e => {
     case "reopen": act.reopen(p.id); break;
     case "publish": act.publish(p.id); break;
     case "step": act.step(p.id, +t.dataset.v); break;
+    case "reveal2": patchState(s => { pg(s, p.id).reveal2 = !pg(s, p.id).reveal2; }); break;
     case "timer": act.timer(+t.dataset.v); break;
     case "glove": act.glove(t.dataset.v); break;
     case "seg": act.seg(+t.dataset.v); break;
