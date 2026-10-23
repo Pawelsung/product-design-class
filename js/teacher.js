@@ -484,7 +484,7 @@ function screenBody(p, x) {
     case "glove": return gloveScreen(x);
     case "voice": {
       const v = personResponses(T.responses, p.id).filter(r => r.sent && !r.hidden).sort((a, b) => a.sent_ms - b.sent_ms);
-      return `<div class="sc-hint">${G.map(g => `第 ${g} 組：${esc(productOf(g) || "尚未指定產品，請老師先設定")}`).join("　｜　")}</div>` + activityGuide("voice") + `<div class="sc-hint">心聲牆・已交 ${v.length} 張・不顯示座號</div><div class="sc-notes">${v.slice(-15).map(r => `<div class="sc-note v">${(r.sent.a || []).map(t => `<div>${esc(t)}</div>`).join("")}</div>`).join("")}</div>`;
+      return `<div class="sc-hint">可選：水壺、書包、無線耳機、手搖飲杯、小卡卡冊、遊戲手把。</div><div class="sc-hint">${G.map(g => `第 ${g} 組：${esc(productOf(g) || "尚未指定，可先在平板選產品寫經驗")}`).join("　｜　")}</div>` + activityGuide("voice") + `<div class="sc-hint">心聲牆・已交 ${v.length} 張・不顯示座號</div><div class="sc-notes">${v.slice(-15).map(r => `<div class="sc-note v"><b>${esc(r.sent.product || "未標示產品")}</b>${(r.sent.a || []).map(t => `<div>${esc(t)}</div>`).join("")}</div>`).join("")}</div>`;
     }
     case "cards": {
       const seg = x.seg || 1;

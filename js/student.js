@@ -114,6 +114,7 @@ function setVal(p, part, v) {
 
 function fillDefaults(p, v) {
   if (!v || typeof v !== "object") return;
+  if (p.type === "voice" && !v.product) v.product = product();
   if (p.type === "sort") { if (!Array.isArray(v.order)) v.order = [null, null, null, null, null, null]; if (!Array.isArray(v.desc)) v.desc = ["", "", "", "", "", ""]; }
   if (p.type === "judge" && !Array.isArray(v.rows)) v.rows = p.rows.map(() => ({}));
 }
@@ -430,14 +431,18 @@ function gloveView(p) {
 
 /* 2-6 心聲卡 */
 function voiceView(p) {
-  const v = val(p), prod = product(), ed = isEditor(p) && !!prod;
+  const v = val(p), prod = voiceProduct(v, product()), ed = isEditor(p);
   const qs2 = v.unused ? p.unused : p.used;
-  const a = v.a || [];
-  if (!prod) return `<div class="banner wait"><b>第 ${S.group} 組尚未指定產品。</b>請老師在「分組／產品」設定這組要改造的產品，再開始填心聲卡。</div>`;
-  let h = `<div class="banner info"><b>第 ${S.group} 組要改造的產品：${esc(prod)}</b></div>` + activityGuide("voice") + `<p class="small muted">每題一句就好，可以用語音輸入。投影上只顯示內容，不顯示座號。</p>`;
-  h += `<label class="row"><input type="checkbox" id="v-unused" data-act="unused" ${v.unused ? "checked" : ""} ${dis(ed)}> 我沒用過${esc(prod || "這個產品")}</label>`;
-  h += qs2.map((q, i) => `<div><label class="lab" for="v-${i}">${i + 1}. ${esc(fillProduct(q, prod))}${v.unused && i === 2 ? `<span class="chip warn" style="margin-left:6px">這一題會標成「猜的」</span>` : ""}</label><textarea id="v-${i}" data-bind="voice" data-i="${i}" ${dis(ed)}>${esc(a[i] || "")}</textarea></div>`).join("");
-  h += `<div class="row"><button class="btn go" data-act="send" ${dis(ed && [0, 1, 2].every(i => (a[i] || "").trim()))}>送出心聲卡</button>${statusBox(p)}</div>`;
+  const a = v.a || [], example = VOICE_EXAMPLES[prod];
+  const choices = [...new Set([product(), ...PRODUCTS].filter(Boolean))];
+  let h = `<section class="card stack"><h2>先選你要分享的產品</h2><p>選一項你用過的東西，回想一次具體經驗。若沒用過，可以寫你看過的情況。這張卡會連同產品名稱帶到下一頁。</p><div class="pillset">${choices.map(name => `<button data-act="voiceproduct" data-v="${esc(name)}" aria-pressed="${prod === name}" ${dis(ed)}>${esc(name)}</button>`).join("")}</div>${product() ? `<p class="small muted">本組改造產品：${esc(product())}。優先分享這項產品；也可選其他熟悉的產品，提供比較。</p>` : `<p class="small muted">小組還沒指定產品也能先選一項，寫自己的使用經驗。</p>`}</section>`;
+  if (!prod) return h + `<div class="banner wait">先按上方一個產品，例如「水壺」或「書包」，就會出現題目和例子。</div>`;
+  h += `<div class="banner info"><b>這張心聲卡的產品：${esc(prod)}</b></div>`;
+  h += `<p>請寫自己的經驗，不要照抄例子。每題一句即可；投影不顯示座號。</p>`;
+  if (example) h += `<details class="soft"><summary>看「${esc(prod)}」的完整填寫例子</summary><ol>${example.map(t => `<li>${esc(t)}</li>`).join("")}</ol></details>`;
+  h += `<label class="row"><input type="checkbox" id="v-unused" data-act="unused" ${v.unused ? "checked" : ""} ${dis(ed)}> 我沒用過「${esc(prod)}」，改寫觀察或想問的問題</label>`;
+  h += qs2.map((q, i) => `<div><label class="lab" for="v-${i}">${i + 1}. ${esc(fillProduct(q, prod))}${v.unused && i === 2 ? `<span class="chip warn">這一題是猜測，還要查證</span>` : ""}</label><textarea id="v-${i}" data-bind="voice" data-i="${i}" placeholder="${esc(v.unused ? ["例：我看過同學在……", "例：我想問使用者……", "例：我猜他在意……，但還沒確認"][i] : example ? "例如：" + example[i] : "寫出一次具體經驗")}" ${dis(ed)}>${esc(a[i] || "")}</textarea></div>`).join("");
+  h += `<div class="row"><button class="btn go" data-act="send" ${dis(ed && [0, 1, 2].every(i => (a[i] || "").trim()))}>送出「${esc(prod)}」心聲卡</button>${statusBox(p)}</div>`;
   return h;
 }
 
@@ -448,7 +453,7 @@ function cardsView(p) {
   let h = activityGuide(seg === 1 ? "cards1" : "cards2");
   if (seg === 2) h += `<details><summary>查看同組心聲卡與十二種角色情境（參考資料）</summary>`;
   h += `<div class="card stack"><h2 style="font-size:1.1rem">我們組的心聲卡（${S.voices.length} 張）</h2>`;
-  h += S.voices.length ? S.voices.map((vc, i) => `<div class="voicecard"><b>卡 ${i + 1}</b>${vc.unused ? `<span class="chip warn" style="margin-left:6px">沒用過</span>` : ""}<br>${(vc.a || []).map((x, k) => `${esc(x)}${vc.unused && k === 2 ? `<span class="chip warn">猜的</span>` : ""}`).join("<br>")}</div>`).join("")
+  h += S.voices.length ? S.voices.map((vc, i) => `<div class="voicecard"><b>卡 ${i + 1}｜${esc(vc.product || product() || "未標示產品")}</b>${vc.unused ? `<span class="chip warn" style="margin-left:6px">沒用過</span>` : ""}<br>${(vc.a || []).map((x, k) => `${esc(x)}${vc.unused && k === 2 ? `<span class="chip warn">猜的</span>` : ""}`).join("<br>")}</div>`).join("")
     : `<p class="muted small">還沒有心聲卡。</p>`;
   h += `</div>`;
   h += `<div class="card stack"><h2 style="font-size:1.1rem">十二種角色情境｜自由選看，不限換卡次數</h2><p>先唸上方同組心聲卡，再選與「${esc(product() || "這組產品")}」有關的情境。這些是幫助思考的假設。</p>`;
@@ -617,6 +622,7 @@ document.addEventListener("click", async e => {
     case "jv": { v.rows = v.rows || []; v.rows[+t.dataset.i] = Object.assign({}, v.rows[+t.dataset.i], { v: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break; }
     case "prod": v.product = Object.assign({}, v.product, { choice: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break;
     case "glove": { const k = "r" + t.dataset.r; v[k] = Object.assign({}, v[k], { ["a" + t.dataset.i]: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break; }
+    case "voiceproduct": { const next = Object.assign({}, v, { product: t.dataset.v }); setVal(p, null, next); queueDraft(p); render(true); break; }
     case "unused": v.unused = t.checked; setVal(p, null, v); queueDraft(p); render(true); break;
     case "draw": {
       t.disabled = true;

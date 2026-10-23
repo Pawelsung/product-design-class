@@ -174,7 +174,7 @@ function gloveCanPublish(x) { return x.round === 2 && x.phase === "r2" && x.ende
 
 function activityGuide(kind) {
   const guides = {
-    voice: ["每人寫一張自己的使用經驗", ["打開平板，確認你們組要改造的產品。", "各寫一句：什麼時候用？當時要做什麼、哪一步不方便？希望能做到什麼？", "按「送出心聲卡」。沒用過就勾選「我沒用過」，寫觀察或想問的問題。"], "例｜水壺：下午上課時 → 水喝完又不方便離座 → 希望座位上一直有水喝。"],
+    voice: ["每人寫一張自己的使用經驗", ["先選一項你用過、或看過別人使用的產品。小組已選的產品會先顯示。", "各寫一句：什麼時候用？當時要做什麼、哪一步不方便？希望能做到什麼？", "按「送出心聲卡」。沒用過就勾選「我沒用過」，寫觀察或想問的問題。"], "例｜水壺：下午上課時 → 水喝完又不方便離座 → 希望座位上一直有水喝。"],
     cards1: ["先唸同組心聲卡，再自由選情境", ["唸卡代表依序唸出組員的心聲卡，大家找出共同困難。", "打開十二種情境，選與產品有關的幾種討論；不適用就換看別種，不限次數。", "老師切到第二段後，由整理代表寫至少三條需求，並勾選來源。"], "上方心聲卡來自同組同學在上一頁寫的內容；下方十二種角色情境是額外參考，不是實際訪談證據。"],
     cards2: ["把討論變成至少三條需求", ["全組討論：誰，在什麼情況下，需要什麼？", "整理代表在平板填寫至少三條，勾選心聲卡、角色卡或手套挑戰等來源。", "按「送出需求清單」。其他組員一起檢查：這是需要達成的事，還是直接指定功能？"], "例｜上課一整天的學生，在下午的座位上，需要隨時喝到足夠的水。"],
     ai: ["請 AI 補想法，再用你們的證據檢查它", ["AI 操作員：在平板按「複製問法」→ 開 Gemini 貼上 → 把回答貼回網站 →「交給全組判斷」。", "全組：拿上一頁的需求清單逐條比較，選「有想到／沒有想到」。", "判斷代表：每條選綠（有根據）、黃（要查證）或紅（刻板印象），全部完成後按「送出判斷」。"], "例｜AI 說「女生都喜歡粉紅水壺」：沒有資料，而且把所有女生說成一樣 → 紅。AI 多說一條，不代表它說對了。"]
@@ -221,3 +221,13 @@ function kinTask(state = {}) {
   const slide = slides[index];
   return `<section class="kin-case"><div class="kin-progress">${esc(slide.tag)}　${index + 1}/${slides.length}</div><h2>${esc(slide.title)}</h2><div class="kin-cards">${slide.cards.map(([title, text]) => `<article><h3>${esc(title)}</h3><p>${esc(text)}</p></article>`).join("")}</div><div class="kin-task"><b>現在要做：</b>${esc(slide.task)}</div><p class="kin-note">${esc(slide.note)}</p><details class="kin-sources"><summary>案例資料來源（內容已整理在本頁）</summary><a href="https://news.microsoft.com/source/2010/04/12/microsoft-ushers-in-the-next-generation-of-the-social-phone-with-kin-a-new-windows-phone/" target="_blank" rel="noopener">Microsoft：產品發表與功能</a> · <a href="https://blogs.windows.com/windowsexperience/2010/05/05/kin-availability-and-pricing-announced/" target="_blank" rel="noopener">Microsoft：美國上市與機價</a> · <a href="https://www.computerworld.com/article/1588692/microsoft-verizon-defend-kin-s-monthly-pricing-noting-cloud-backup.html" target="_blank" rel="noopener">Computerworld：月費與 App 限制</a> · <a href="https://www.cbsnews.com/news/two-months-after-debut-microsoft-kills-kin/" target="_blank" rel="noopener">CBS：6 月 30 日計畫調整及微軟聲明</a></details></section>`;
 }
+
+const VOICE_EXAMPLES = {
+  "水壺": ["下午上課想喝水", "水喝完了，但當時不方便離開座位補水", "希望下午在座位上也有足夠的水喝"],
+  "書包": ["每天背課本走到教室", "找悠遊卡時，要把很多東西拿出來才找得到", "希望需要時能快速找到卡片"],
+  "無線耳機（含充電盒）": ["搭公車聽音樂", "拿下耳機收起來時，一隻掉到座位底下", "希望拿取、收好時不容易掉落"],
+  "手搖飲杯": ["走路時拿著飲料", "手上還有課本，很難同時拿穩飲料", "希望帶著其他東西時也能穩定攜帶飲料"],
+  "小卡卡冊": ["想把新卡片放進卡冊", "卡片一直卡在袋口，擔心把卡片折到", "希望能順利放入卡片，又不傷到卡片"],
+  "遊戲手把": ["玩需要同時按好幾個鍵的遊戲", "手比較小，有一個按鍵要換握法才按得到", "希望握穩時也能按到需要的按鍵"]
+};
+function voiceProduct(v, groupProduct) { return v.product || groupProduct || ""; }
