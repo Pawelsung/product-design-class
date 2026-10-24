@@ -8,15 +8,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261023-5">
+<link rel="stylesheet" href="css/style.css?v=20261024-1">
 </head>
 <body>
 <main id="app"><div class="t-wrap"><p class="muted">載入中…</p></div></main>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script src="js/content.js?v=20261023-5"></script>
-<script src="js/art.js?v=20261023-5"></script>
-<script src="js/common.js?v=20261023-5"></script>
-<script src="js/teacher.js?v=20261023-5"></script>
+<script src="js/vendor/qrcode-1.4.4.min.js"></script>
+<script src="js/content.js?v=20261024-1"></script>
+<script src="js/art.js?v=20261024-1"></script>
+<script src="js/common.js?v=20261024-1"></script>
+<script src="js/vendor/pdf-lib-1.17.1.min.js"></script>
+<script src="js/qr-desk.js?v=20261024-1"></script>
+<script src="js/class-manager.js?v=20261024-1"></script>
+<script src="js/teacher.js?v=20261024-1"></script>
 <script>
   // 圖片先預先載入，換頁時不會等
   Object.values(IMAGES).forEach(src => { const i = new Image(); i.src = src; });

@@ -20,7 +20,7 @@ const groupsMap = () => T.session.groups || {};
 const gids = () => groupIds(groupsMap());
 const repOf = (slot, g) => T.session.reps && T.session.reps[slot] && T.session.reps[slot][g];
 const aiOf = g => T.session.ai_ops && T.session.ai_ops[g];
-const activeSeats = () => [...new Set(T.devices.filter(d => d.status === "active").map(d => d.seat))];
+const activeSeats = () => [...new Set(T.devices.filter(d => d.status === "active" && sessionSeatNumbers(T.session).includes(d.seat)).map(d => d.seat))];
 const studentLink = () => st().classKey ? STUDENT_URL() + "?k=" + encodeURIComponent(st().classKey) : STUDENT_URL() + "?c=" + T.session.code;
 const productOf = g => (st().products && st().products[g]) || "";
 
@@ -34,6 +34,7 @@ async function loadSessions() {
   const r = await rpc("lesson_teacher_sessions", { p_token: T.token });
   if (r && r.error === "TEACHER_AUTH") { logout(); return; }
   T.sessions = Array.isArray(r) ? r : [];
+  await CM.load();
   T.phase = "sessions"; render();
 }
 function logout() { LS.del("lesson-teacher-token"); T.token = null; T.phase = "login"; render(); }
@@ -99,6 +100,7 @@ async function teacherWrite(page, owner, part, value, extra) {
 function isTyping() { const a = document.activeElement; return a && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && /text|number|password/.test(a.type)) || a.tagName === "SELECT"); }
 let lastHTML = "";
 function render(force) {
+  if (CM.dragging && !force) { renderLive(); return; }
   if (T.mode === "screen" && T.phase === "screen") {
     const html = screenView();
     if (html !== lastHTML) { app.innerHTML = html; lastHTML = html; }
@@ -134,42 +136,25 @@ function loginView() {
     <button class="btn primary block" data-act="login">登入</button></div>`;
 }
 function sessionsView() {
-  const f = T.form;
-  let h = `<div class="t-head"><b>課堂網站</b><span class="spacer"></span><button class="btn ghost sm" style="color:#fff;border-color:rgba(255,255,255,.4)" data-act="logout">登出</button></div><div class="t-wrap">`;
-  if (!f) {
-    h += `<button class="btn primary block" data-act="newform">開新的一堂課</button>`;
-    h += `<div class="t-sec"><h3>最近的課堂</h3><div class="t-list">${T.sessions.length ? T.sessions.map(s => `<div class="it"><span><b class="mono">${s.code}</b>　第 ${s.lesson} 節　${esc(s.label)}<br><span class="small muted">${new Date(s.created_at).toLocaleString("zh-TW")}${s.active ? "" : "・已結束"}</span></span>
-      <span class="row"><a class="btn sm" href="?s=${s.id}">控制台</a><a class="btn sm ghost" href="?s=${s.id}&mode=screen" target="_blank" rel="noopener">投影</a><button class="btn sm ghost" data-act="archive" data-id="${s.id}">移除</button></span></div>`).join("") : `<p class="muted small">還沒有課堂。</p>`}</div></div>`;
-  } else {
-    const roster = f.groupsText;
-    h += `<h2>開新的一堂課</h2>
-      <div><label class="lab">節次</label><div class="pillset">${[1, 2].map(n => `<button data-act="flesson" data-v="${n}" aria-pressed="${f.lesson === n}">${esc(LESSONS[n].title)}</button>`).join("")}</div></div>
-      <div><label class="lab" for="f-label">班級</label><input type="text" id="f-label" data-bind="form" data-k="label" value="${esc(f.label)}"></div>
-      <div><label class="lab" for="f-key">班級代號（印在桌上的 QR code 會用到，同一班每節都用一樣的）</label><input type="text" id="f-key" data-bind="form" data-k="classKey" value="${esc(f.classKey)}"></div>
-      <div><label class="lab" for="f-seats">全班人數（座號 1 到）</label><input type="number" id="f-seats" data-bind="form" data-k="seats" value="${f.seats}"></div>
-      <div><label class="lab">分組（每組一行，寫座號，用逗號分開）</label><textarea id="f-groups" data-bind="form" data-k="groupsText" style="min-height:160px;font-family:var(--mono)">${esc(roster)}</textarea><p class="small muted">預設：第 1～4 組各 5 人，第 5、6 組各 4 人。改好會記在這支手機，下次開課直接沿用。</p></div>`;
-    if (f.lesson === 2) {
-      const l1 = T.sessions.filter(s => s.lesson === 1);
-      h += `<div><label class="lab" for="f-from">各組的產品：從第 1 節帶入</label><select id="f-from" data-bind="form" data-k="from"><option value="">不帶入（之後在「分組」手動填）</option>${l1.map(s => `<option value="${s.id}" ${f.from === s.id ? "selected" : ""}>${s.code}・${esc(s.label)}・${new Date(s.created_at).toLocaleDateString("zh-TW")}</option>`).join("")}</select></div>`;
-    }
-    const parsed = parseRoster(f.groupsText, +f.seats);
-    h += parsed.error ? `<div class="banner bad">${esc(parsed.error)}</div>` : `<div class="banner info">${Object.keys(groupSeats(parsed.map)).length} 組、${Object.keys(parsed.map).length} 人</div>`;
-    h += `<div class="row"><button class="btn primary" data-act="create" ${dis(!parsed.error)}>建立課堂</button><button class="btn ghost" data-act="cancelform">取消</button></div>`;
-  }
+  let h = `<div class="t-head"><b>課堂網站</b><span class="spacer"></span><button class="btn ghost sm" data-act="logout">登出</button></div><div class="t-wrap">`;
+  if (T.form) return h + CM.view(T.form) + `</div>`;
+  h += CM.tiles();
+  h += `<section class="t-sec"><h3>最近的課堂</h3><div class="t-list">${T.sessions.length ? T.sessions.map(s => `<div class="it"><span><b class="mono">${s.code}</b>　第 ${s.lesson} 節　${esc(s.label)}<br><span class="small muted">${new Date(s.created_at).toLocaleString("zh-TW")}${s.active ? "" : "・已結束"}</span></span><span class="row"><a class="btn sm" href="?s=${s.id}">控制台</a><a class="btn sm ghost" href="?s=${s.id}&mode=screen" target="_blank" rel="noopener">投影</a><button class="btn sm ghost" data-act="archive" data-id="${s.id}">移除</button></span></div>`).join("") : `<p class="muted small">還沒有課堂。</p>`}</div></section>`;
   return h + `</div>`;
 }
 function parseRoster(text, seats) {
+  const allowed = Array.isArray(seats) ? seats : Array.from({length: seats}, (_,i)=>i+1);
   const map = {}; const lines = String(text || "").split(/\n/).map(s => s.trim()).filter(Boolean);
   if (!lines.length) return { error: "請填分組" };
   for (let i = 0; i < lines.length; i++) {
     const nums = lines[i].split(/[,，、\s]+/).filter(Boolean).map(Number);
     for (const n of nums) {
-      if (!Number.isInteger(n) || n < 1 || n > seats) return { error: `第 ${i + 1} 組有不在 1～${seats} 的座號：${n}` };
+      if (!Number.isInteger(n) || n < 1 || !allowed.includes(n)) return { error: `第 ${i + 1} 組有不在班級名單內的座號：${n}` };
       if (map[n]) return { error: `座號 ${n} 重複出現` };
       map[n] = i + 1;
     }
   }
-  const missing = []; for (let s = 1; s <= seats; s++) if (!map[s]) missing.push(s);
+  const missing = allowed.filter(s => !map[s]);
   if (missing.length) return { error: `這些座號沒有分組：${missing.join("、")}` };
   return { map };
 }
@@ -314,13 +299,13 @@ function progress(p) {
     const d2 = rows.filter(r => r.sent && r.sent["r" + round] && [0, 1, 2].every(i => r.sent["r" + round]["a" + i])).map(r => +r.owner.slice(1));
     return `<div class="banner info">第${round === 1 ? "一" : "二"}輪已送出 ${d2.length} 人</div>`;
   }
-  const all = []; for (let i = 1; i <= T.session.seats; i++) all.push(i);
+  const all = sessionSeatNumbers(T.session);
   const miss = all.filter(s => !done.includes(s));
   return `<div class="banner info">已送出 ${done.length} / ${T.session.seats}</div>${miss.length && miss.length <= 12 ? `<div class="small">還沒送出：${miss.map(s => s + " 號").join("、")}</div>` : ""}`;
 }
 function hasData(d) { return d && JSON.stringify(d) !== "{}"; }
 function missingList(a) {
-  const miss = []; for (let i = 1; i <= T.session.seats; i++) if (!a.includes(i)) miss.push(i);
+  const miss = sessionSeatNumbers(T.session).filter(i => !a.includes(i));
   return miss.length ? `<div class="small">還沒登入：${miss.map(s => s + " 號").join("、")}</div>` : "";
 }
 
@@ -330,14 +315,14 @@ function groupsTab() {
   if (T.session.lesson === 2) {
     h += `<div class="t-sec"><h3>各組產品（心聲卡、AI 問法會自動帶入）</h3>${Object.keys(G).map(g => `<div class="row"><span style="width:4.5em">第 ${g} 組</span><input type="text" id="prod-${g}" data-bind="prod" data-g="${g}" value="${esc(productOf(g))}" style="flex:1;min-width:0"></div>`).join("")}<button class="btn primary" data-act="saveprod">儲存產品</button></div>`;
   }
-  h += `<details class="box"><summary>修改分組</summary><div class="stack" style="margin-top:8px"><textarea id="regroup" style="min-height:150px;font-family:var(--mono)">${esc(rosterText(groupsMap()))}</textarea>
-    <p class="small muted">每組一行。改分組後會重新排送出代表和 AI 操作員。</p><button class="btn" data-act="regroup">儲存分組並重新排代表</button></div></details>`;
+  h += `<div class="t-sec"><h3>分組調整</h3>${CM.sessionEdit ? CM.grouping(CM.sessionEdit, 'session') + `<div class="row"><button class="btn primary" data-cm="sessionsave">儲存這堂課的分組並重新排代表</button><button class="btn ghost" data-cm="sessioncancel">取消</button></div>` : `<button class="btn" data-cm="sessionedit">自動分組／拖曳與點選調整</button>`}<p class="small muted">此處只修改目前課堂；固定班級分組請回「我的班級」設定。</p></div>`;
+  h += `<div class="t-sec"><h3>班級 QR Code 與桌卡</h3><button class="btn primary" data-act="classqr">顯示 QR Code／下載桌卡 PDF</button><p class="small muted">直接產生 A4 裁切桌卡，不必輸入網址。</p></div>`;
   h += `<button class="btn ghost" data-act="rerole">只重新排送出代表和 AI 操作員</button>`;
   return h;
 }
 function loginTab() {
   const a = activeSeats();
-  let h = `<div class="t-sec"><h3>已登入 ${a.length} / ${T.session.seats}</h3><div class="seatgrid-t">${Array.from({ length: T.session.seats }, (_, i) => i + 1).map(s => `<span class="${a.includes(s) ? "on" : T.devices.some(d => d.seat === s && d.status === "pending") ? "warn" : ""}">${s}</span>`).join("")}</div></div>`;
+  let h = `<div class="t-sec"><h3>已登入 ${a.length} / ${T.session.seats}</h3><div class="seatgrid-t">${sessionSeatNumbers(T.session).map(s => `<span class="${a.includes(s) ? "on" : T.devices.some(d => d.seat === s && d.status === "pending") ? "warn" : ""}">${s}</span>`).join("")}</div></div>`;
   const devs = T.devices.filter(d => d.status !== "revoked").sort((x, y) => x.seat - y.seat);
   h += `<div class="t-sec"><h3>平板（輸錯座號時，按「登出這台」讓學生重新輸入）</h3><div class="t-list">${devs.map(d => `<div class="it"><span><b>${d.seat} 號</b>　<span class="small muted">${d.status === "pending" ? "等待允許" : "最後連線 " + fmtClock(d.seen_ms)}</span></span>
     <span class="row">${d.status === "pending" ? `<button class="btn go sm" data-act="dev" data-d="${d.device}" data-v="allow">允許</button>` : ""}<button class="btn ghost sm" data-act="dev" data-d="${d.device}" data-v="logout">登出這台</button></span></div>`).join("") || `<p class="small muted">還沒有平板登入。</p>`}</div></div>`;
@@ -348,7 +333,7 @@ function dataTab() {
   const p = curP();
   return `<div class="t-sec"><h3>投影</h3><a class="btn primary block" href="?s=${T.sid}&mode=screen" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">在這台開投影畫面</a>
     <p class="small muted">在教室電腦打開老師網址、登入後點這裡，按 F11 全螢幕。</p></div>
-    <div class="t-sec"><h3>桌上的 QR code</h3>${st().classKey ? `<a class="btn block" href="qr.html?k=${encodeURIComponent(st().classKey)}&l=${encodeURIComponent(T.session.class_label)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">打開列印頁（班級代號 ${esc(st().classKey)}）</a><p class="small muted">同一個班每節都用同一張，印一次就好。</p>` : `<p class="small muted">這堂課開課時沒有填班級代號，所以沒有固定的 QR code。下次開課時填上就有了。</p>`}</div>
+    <div class="t-sec"><h3>桌上的 QR Code</h3><button class="btn block" data-act="classqr">顯示班級 QR Code／下載桌卡 PDF</button><p class="small muted">一張 A4 六張，附裁切線。同一班可重複使用。</p></div>
     <div class="t-sec"><h3>下載作答資料（CSV，可用 Excel 開）</h3><button class="btn" data-act="csv" data-v="${p.id}">下載這一頁（${p.id}）</button><button class="btn" data-act="csv" data-v="">下載這一節全部</button></div>
     <div class="t-sec"><h3>整堂課重來</h3><p class="small muted">清空這堂課所有作答，學生要重新輸入座號，頁面回到第一頁。分組、產品和課堂代碼保留。</p><button class="btn stop" data-act="resetall">整堂課重來</button></div>
     <div class="t-sec"><h3>課堂</h3><button class="btn ghost" data-act="sessions">回課堂清單</button><button class="btn stop" data-act="close">結束這堂課（學生不能再登入）</button></div>
@@ -424,7 +409,7 @@ function loginScreen(p) {
         <div class="cv-agenda"><b>今天要做的事</b><ol>${Lx.agenda.map(x => `<li>${esc(x)}</li>`).join("")}</ol></div>
       </div>
     </div>
-    <div class="cv-seats"><span>已登入 <b>${a.length}</b> / ${T.session.seats}</span><div class="sc-seats">${Array.from({ length: T.session.seats }, (_, i) => i + 1).map(s => `<span class="${a.includes(s) ? "on" : ""}">${s}</span>`).join("")}</div></div>
+    <div class="cv-seats"><span>已登入 <b>${a.length}</b> / ${T.session.seats}</span><div class="sc-seats">${sessionSeatNumbers(T.session).map(s => `<span class="${a.includes(s) ? "on" : ""}">${s}</span>`).join("")}</div></div>
   </div>
   <div class="sc-overlay err" id="netbar" ${T.net ? "hidden" : ""}>網路中斷，重新連線中…</div>`;
 }
@@ -601,27 +586,13 @@ document.addEventListener("click", async e => {
       break;
     }
     case "logout": logout(); break;
-    case "newform": {
-      const saved = LS.get("lesson-roster", null);
-      T.form = { lesson: 1, label: LS.get("lesson-label", "九年 16 班"), seats: saved ? saved.seats : 28, groupsText: saved ? saved.text : rosterText(defaultGroups(28, [5, 5, 5, 5, 4, 4])), from: "", classKey: LS.get("lesson-classkey", "916") };
-      render(true); break;
-    }
+    case "newform": CM.open(); break;
     case "cancelform": T.form = null; render(true); break;
     case "flesson": T.form.lesson = +t.dataset.v; render(true); break;
-    case "create": {
-      const f = T.form, parsed = parseRoster(f.groupsText, +f.seats);
-      if (parsed.error) return;
-      t.disabled = true;
-      const roles = buildRoles(parsed.map, f.lesson);
-      const state = { page: LESSONS[f.lesson].pages[0].id, pages: {}, classKey: (f.classKey || "").trim() };
-      if (f.lesson === 2 && f.from) {
-        const r = await rpc("lesson_teacher_poll", { p_token: T.token, p_id: f.from, p_with_private: false });
-        if (r && r.ok) { state.products = {}; (r.responses || []).filter(x => x.page === "1-8" && x.owner[0] === "g").forEach(x => { const d = x.sent || x.data; if (d && d.product) state.products[x.owner.slice(1)] = productText(d.product); }); }
-      }
-      const r = await rpc("lesson_create", { p_token: T.token, p_lesson: f.lesson, p_label: f.label, p_seats: +f.seats, p_groups: parsed.map, p_reps: roles.reps, p_ai: roles.ai, p_state: state });
-      if (r && r.ok) { LS.set("lesson-roster", { seats: +f.seats, text: f.groupsText }); LS.set("lesson-label", f.label); LS.set("lesson-classkey", (f.classKey || "").trim()); location.href = "?s=" + r.id; }
-      else { toast("建立失敗，請再試一次"); t.disabled = false; }
-      break;
+    case "create": if (T.form) await CM.create(T.form); break;
+    case "classqr": {
+      if (!st().classKey) { toast("這堂舊課沒有固定班級代號。請回班級清單建立班級後產生桌卡。"); break; }
+      QRDesk.open({label:T.session.class_label,class_key:st().classKey,groups:st().baseGroups || groupsMap()}); break;
     }
     case "sessions": location.href = location.pathname; break;
     case "tab": T.tab = t.dataset.v; render(true); break;
@@ -660,7 +631,7 @@ document.addEventListener("click", async e => {
       if (await patchState(s => { s.products = pr; })) toast("已儲存產品"); break;
     }
     case "regroup": {
-      const parsed = parseRoster(document.getElementById("regroup").value, T.session.seats);
+      const parsed = parseRoster(document.getElementById("regroup").value, sessionSeatNumbers(T.session));
       if (parsed.error) { toast(parsed.error); break; }
       const roles = buildRoles(parsed.map, T.session.lesson);
       const r = await rpc("lesson_teacher_update", { p_token: T.token, p_id: T.sid, p_rev: null, p_state: null, p_reps: roles.reps, p_ai: roles.ai, p_groups: parsed.map });

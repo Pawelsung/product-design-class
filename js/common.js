@@ -246,3 +246,9 @@ const VOICE_GUIDES = [
   ["回想一個場景：當時在哪裡、什麼時候？你想做什麼？", "想一想：哪個動作不順利？發生了什麼？造成什麼影響？", "如果這個困難被解決，你希望能順利做到什麼？先不用決定功能。"],
   ["你曾看過誰在什麼情況下使用？他當時在做什麼？", "你看到哪個動作不順利？如果沒看過，你最想問使用者什麼？", "你猜對方希望做到什麼？請把觀察到的事和猜測分開。"]
 ];
+
+function sessionSeatNumbers(session) {
+  if (session && session.groups && Object.keys(session.groups).length) return Object.keys(session.groups).map(Number).sort((a,b)=>a-b);
+  if (Array.isArray(session?.validSeats)) return session.validSeats.map(Number).sort((a,b)=>a-b);
+  return Array.from({length:session?.seats || 0},(_,i)=>i+1);
+}

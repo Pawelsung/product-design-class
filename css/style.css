@@ -419,3 +419,21 @@ body.screen .sc:not(.sc-cover) { background-color: #FBFCFB; background-image: li
 .screen .kin-cards h3 { font-size:1.7vw; }
 .screen .kin-task { font-size:1.65vw; margin-top:1.2vw; padding:1vw; }
 .screen .kin-note, .screen .kin-sources { font-size:1.1vw; margin-top:.7vw; }
+
+.class-tiles { display:grid; gap:12px; margin-bottom:16px; }
+.class-tile { border:1px solid var(--line); background:var(--card); border-radius:14px; padding:16px; }
+.class-tile h3 { margin:0; }
+.roster-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(48px,1fr)); gap:6px; margin:12px 0; }
+.roster-grid button { min-height:44px; background:#eef0ee; color:#68726c; border:1px solid #cbd4ce; border-radius:8px; font:inherit; cursor:pointer; }
+.roster-grid button[aria-pressed="true"] { background:#2d6952; color:#fff; border-color:#2d6952; }
+.roster-grid.attendance button { background:#fff; color:#203e32; }
+.roster-grid.attendance button[aria-pressed="true"] { background:#f9dfce; color:#87371f; border-color:#b25938; }
+.group-board { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-top:16px; }
+.group-bin { background:#f0f5f1; border:1px dashed #9bb4a3; border-radius:12px; padding:10px; min-height:130px; }
+.seat-pills { display:flex; flex-wrap:wrap; gap:7px; margin-top:8px; }
+.seat-pill { background:#fff; color:#203e32; border:1px solid #b7c6bd; padding:10px 13px; border-radius:10px; cursor:grab; min-height:44px; font:inherit; }
+.seat-pill.selected { background:#e3b544; outline:2px solid #203e32; }
+.qr-dialog { border:0; border-radius:18px; padding:24px; max-width:620px; width:calc(100vw - 24px); max-height:92vh; overflow:auto; color:#18261f; }
+.qr-dialog::backdrop { background:rgba(0,0,0,.5); }
+.qr-preview { width:min(65vw,280px); margin:12px auto; background:#fff; }
+.qr-preview svg { display:block; width:100%;height:auto; }

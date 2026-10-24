@@ -572,12 +572,13 @@ function codeView() {
     <button class="btn primary block" data-act="code" ${dis(S.codeInput.length === 4)}>下一步</button></div></div>`;
 }
 function seatView() {
-  const seats = S.session && S.session.seats || 28;
+  const allowed = sessionSeatNumbers(S.session);
   return `<div class="st-main">${coverCard(S.session && S.session.lesson, S.session && S.session.label)}<div class="login-box" style="margin-top:0"><h1>輸入你的座號</h1>
     <p class="muted small">課堂代碼 ${esc(CODE)}</p>
-    <input type="text" inputmode="numeric" id="seat-in" data-bind="seat" maxlength="2" value="${esc(S.seatInput)}" autocomplete="off" placeholder="座號">
+    <p class="small muted">點選你的座號，或在下面輸入。沒有顯示的座號可能未列入名單或今天請假。</p><div class="roster-grid">${allowed.map(n=>`<button data-act="chooseseat" data-v="${n}" aria-pressed="${+S.seatInput===n}">${n}</button>`).join("")}</div>
+    <input type="text" inputmode="numeric" id="seat-in" data-bind="seat" maxlength="3" value="${esc(S.seatInput)}" autocomplete="off" placeholder="座號">
     ${S.msg ? `<div class="banner bad">${esc(S.msg)}</div>` : ""}
-    <button class="btn primary block" data-act="join" ${dis(+S.seatInput >= 1 && +S.seatInput <= seats)}>登入</button>
+    <button class="btn primary block" data-act="join" ${dis(allowed.includes(+S.seatInput))}>登入</button>
     <button class="btn ghost sm" data-act="changecode">換一個課堂代碼</button></div></div>`;
 }
 
@@ -588,11 +589,12 @@ document.addEventListener("click", async e => {
   const a = t.dataset.act;
   if (a === "code") { CODE = S.codeInput; LS.set("lesson-code", CODE); S.msg = ""; S.phase = "loading"; render(true); poll(); return; }
   if (a === "changecode") { CODE = ""; KEY = ""; LS.del("lesson-code"); LS.del("lesson-class"); S.phase = "code"; S.msg = ""; render(true); return; }
+  if (a === "chooseseat") { S.seatInput=t.dataset.v;render(true);return; }
   if (a === "join") {
     t.disabled = true;
     const r = await rpc("lesson_join", { p_code: CODE, p_seat: +S.seatInput, p_device: DEVICE });
     if (r && r.ok) { S.msg = ""; poll(); }
-    else { S.msg = r && r.error === "BAD_SEAT" ? "沒有這個座號，請再確認。" : "登入失敗，請再試一次。"; render(true); }
+    else { S.msg = r && r.error === "BAD_SEAT" ? "這個座號不在今天的出席名單，請確認或請老師協助。" : "登入失敗，請再試一次。"; render(true); }
     return;
   }
   if (S.phase !== "active") return;
@@ -657,7 +659,7 @@ document.addEventListener("input", e => {
   const t = e.target, b = t.dataset.bind;
   if (!b) return;
   if (b === "code") { S.codeInput = t.value.replace(/\D/g, "").slice(0, 4); if (t.value !== S.codeInput) t.value = S.codeInput; const btn = document.querySelector('[data-act="code"]'); if (btn) btn.disabled = S.codeInput.length !== 4; return; }
-  if (b === "seat") { S.seatInput = t.value.replace(/\D/g, "").slice(0, 2); if (t.value !== S.seatInput) t.value = S.seatInput; const btn = document.querySelector('[data-act="join"]'); const n = +S.seatInput; if (btn) btn.disabled = !(n >= 1 && n <= (S.session && S.session.seats || 28)); return; }
+  if (b === "seat") { S.seatInput = t.value.replace(/\D/g, "").slice(0, 3); if (t.value !== S.seatInput) t.value = S.seatInput; const btn = document.querySelector('[data-act="join"]'); const n = +S.seatInput; if (btn) btn.disabled = !sessionSeatNumbers(S.session).includes(n); return; }
   if (S.phase !== "active") return;
   const p = curPage();
   if (b === "swap") { const sw = Object.assign({ card: "", reason: "", other: "" }, S.local["2-7.swap"]); sw[t.dataset.k] = t.value; S.local["2-7.swap"] = sw; if (t.tagName === "SELECT") render(true); else refreshButtons(); return; }
