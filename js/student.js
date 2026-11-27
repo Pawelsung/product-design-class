@@ -114,7 +114,7 @@ function setVal(p, part, v) {
 
 function fillDefaults(p, v) {
   if (!v || typeof v !== "object") return;
-  if (p.type === "voice" && !v.customProduct && !v.product) v.product = product();
+  if (p.type === "voice" && product()) { v.product = product(); v.customProduct = false; }
   if (p.type === "sort") { if (!Array.isArray(v.order)) v.order = [null, null, null, null, null, null]; if (!Array.isArray(v.desc)) v.desc = ["", "", "", "", "", ""]; }
   if (p.type === "judge" && !Array.isArray(v.rows)) v.rows = p.rows.map(() => ({}));
 }
@@ -431,13 +431,14 @@ function gloveView(p) {
 
 /* 2-6 心聲卡 */
 function voiceView(p) {
-  const v = val(p), prod = voiceProduct(v, product()), ed = isEditor(p);
+  // 心聲卡寫本組產品，2-7 整理需求時才對得上來源；老師還沒設定產品時，才讓學生從六種裡選
+  const v = val(p), gp = product(), prod = gp || v.product || "", ed = isEditor(p);
   const qs2 = VOICE_GUIDES[v.unused ? 1 : 0];
   const a = v.a || [], example = VOICE_EXAMPLES[prod];
-  const choices = [...new Set([product(), ...Object.keys(VOICE_EXAMPLES)].filter(Boolean))];
-  let h = `<section class="card stack"><h2>先選你要分享的產品</h2><p>選一項你用過的東西，回想一次具體經驗。若沒用過，可以寫你看過的情況。這張卡會連同產品名稱帶到下一頁。</p><div class="pillset">${choices.map(name => `<button data-act="voiceproduct" data-v="${esc(name)}" aria-pressed="${!v.customProduct && prod === name}" ${dis(ed)}>${esc(name)}</button>`).join("")}<button data-act="voicecustom" aria-pressed="${!!v.customProduct}" ${dis(ed)}>＋ 自訂產品</button></div>${v.customProduct ? `<label class="lab" for="voice-custom">你想分享什麼產品？</label><input id="voice-custom" type="text" maxlength="40" data-bind="voicecustom" placeholder="例如：腳踏車、安全帽、訂書機……" value="${esc(v.product || "")}" ${dis(ed)}><p class="small muted">輸入名稱後點一下欄位外，即可繼續填寫。</p>` : ""}${product() ? `<p class="small muted">本組改造產品：${esc(product())}。優先分享這項產品；也可選其他熟悉的產品，提供比較。</p>` : `<p class="small muted">小組還沒指定產品也能先選一項，寫自己的使用經驗。</p>`}</section>`;
-  if (!prod) return h + `<div class="banner wait">選一項產品，或按「自訂產品」輸入名稱，即可開始分享。</div>`;
-  h += `<div class="banner info"><b>這張心聲卡的產品：${esc(prod)}</b></div>`;
+  let h = "";
+  if (!gp) h += `<section class="card stack"><h2>你們這組要改造的產品是？</h2><div class="pillset">${PRODUCTS.map(name => `<button data-act="voiceproduct" data-v="${esc(name)}" aria-pressed="${prod === name}" ${dis(ed)}>${esc(name)}</button>`).join("")}</div></section>`;
+  if (!prod) return h + `<div class="banner wait">先選你們這組的產品，再開始寫。</div>`;
+  h += `<div class="banner info"><b>這張心聲卡寫的是：${esc(prod)}</b></div>`;
   h += `<p>請寫自己的經驗，不要照抄例子。每題一句即可；投影不顯示座號。</p>`;
   if (example) h += `<details class="soft"><summary>看「${esc(prod)}」的完整填寫例子</summary><ol>${example.map(t => `<li>${esc(t)}</li>`).join("")}</ol></details>`;
   h += `<label class="row"><input type="checkbox" id="v-unused" data-act="unused" ${v.unused ? "checked" : ""} ${dis(ed)}> 我沒用過「${esc(prod)}」，改寫觀察或想問的問題</label>`;
@@ -449,15 +450,28 @@ function voiceView(p) {
 /* 2-7 唸卡、抽卡、整理需求 */
 function cardsView(p) {
   const s = ps(p), seg = s.seg || 1, row = server(p) || {}, d = row.data || {};
-  const cards = ROLE_CARDS.map((_, i) => i).slice(1);
+  const cards = d.cards || [];
   let h = activityGuide(seg === 1 ? "cards1" : "cards2");
-  if (seg === 2) h += `<details><summary>查看同組心聲卡與十二種角色情境（參考資料）</summary>`;
+  if (seg === 2) h += `<details><summary>查看同組心聲卡與抽到的角色卡（參考資料）</summary>`;
   h += `<div class="card stack"><h2 style="font-size:1.1rem">我們組的心聲卡（${S.voices.length} 張）</h2>`;
-  h += S.voices.length ? S.voices.map((vc, i) => `<div class="voicecard"><b>卡 ${i + 1}｜${esc(vc.product || product() || "未標示產品")}</b>${vc.unused ? `<span class="chip warn" style="margin-left:6px">沒用過</span>` : ""}<br>${(vc.a || []).map((x, k) => `${esc(x)}${vc.unused && k === 2 ? `<span class="chip warn">猜的</span>` : ""}`).join("<br>")}</div>`).join("")
+  h += S.voices.length ? S.voices.map((vc, i) => `<div class="voicecard"><b>卡 ${i + 1}</b>${vc.unused ? `<span class="chip warn" style="margin-left:6px">沒用過</span>` : ""}<br>${(vc.a || []).map((x, k) => `${esc(x)}${vc.unused && k === 2 ? `<span class="chip warn">猜的</span>` : ""}`).join("<br>")}</div>`).join("")
     : `<p class="muted small">還沒有心聲卡。</p>`;
   h += `</div>`;
-  h += `<div class="card stack"><h2 style="font-size:1.1rem">十二種角色情境｜自由選看，不限換卡次數</h2><p>先唸上方同組心聲卡，再選與「${esc(product() || "這組產品")}」有關的情境。這些是幫助思考的假設。</p>`;
-  h += cards.map(c => { const rc = ROLE_CARDS[c]; return `<details class="rolecard"><summary>${esc(rc.name)}</summary><p>${esc(rc.say)}</p><p><b>討論：</b>${esc(rc.think)}</p><div class="note">${ROLE_NOTE}</div></details>`; }).join("");
+  const repA = repSeat(p.slot), canA = isOpen(p) && iAmRep(p.slot) && seg === 1;
+  h += `<div class="card stack"><h2 style="font-size:1.1rem">角色卡</h2><p class="small muted">由 ${repA} 號唸卡，唸完按「抽卡」，抽兩張角色卡。</p>`;
+  if (!cards.length) h += seg === 1 ? `<button class="btn gold" data-act="draw" ${dis(canA)}>抽卡</button>` : `<p class="muted small">這組沒有抽角色卡。</p>`;
+  else {
+    h += `<div class="rolecards">${cards.map(c => { const rc = ROLE_CARDS[c]; return `<div class="rolecard"><h3>${esc(rc.name)}</h3><div>${esc(rc.say)}</div><div class="small"><b>想一想：</b>${esc(rc.think)}</div>${rc.img ? img(rc.img) : ""}<div class="note">${ROLE_NOTE}</div></div>`; }).join("")}</div>`;
+    if (d.swap) h += `<p class="small muted">已換過一次卡（${esc(ROLE_CARDS[d.swap.from].name)} → ${esc(ROLE_CARDS[d.swap.to].name)}）</p>`;
+    else if (canA) {
+      const sw = S.local["2-7.swap"] || { card: "", reason: "", other: "" };
+      h += `<details class="box"><summary>真的用不上？換一張（每組限一次）</summary><div class="stack" style="margin-top:8px">
+        <select id="sw-card" data-bind="swap" data-k="card"><option value="">要換掉哪一張？</option>${cards.map(c => `<option value="${c}" ${String(sw.card) === String(c) ? "selected" : ""}>${esc(ROLE_CARDS[c].name)}</option>`).join("")}</select>
+        <select id="sw-reason" data-bind="swap" data-k="reason"><option value="">換卡原因</option>${["這個情境不會用到這個產品", "其他"].map(r => `<option ${sw.reason === r ? "selected" : ""}>${r}</option>`).join("")}</select>
+        ${sw.reason === "其他" ? `<input type="text" id="sw-other" data-bind="swap" data-k="other" placeholder="其他原因" value="${esc(sw.other)}">` : ""}
+        <button class="btn" data-act="swap" ${dis(sw.card && sw.reason && (sw.reason !== "其他" || sw.other.trim()))}>換一張</button></div></details>`;
+    }
+  }
   h += `</div>`;
   if (seg === 2) h += `</details>`;
   // 第二段：整理需求
@@ -624,7 +638,6 @@ document.addEventListener("click", async e => {
     case "jv": { v.rows = v.rows || []; v.rows[+t.dataset.i] = Object.assign({}, v.rows[+t.dataset.i], { v: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break; }
     case "prod": v.product = Object.assign({}, v.product, { choice: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break;
     case "glove": { const k = "r" + t.dataset.r; v[k] = Object.assign({}, v[k], { ["a" + t.dataset.i]: t.dataset.v }); setVal(p, null, v); queueDraft(p); render(true); break; }
-    case "voicecustom": setVal(p, null, Object.assign({}, v, { customProduct: true, product: "" })); queueDraft(p); render(true); break;
     case "voiceproduct": { const next = Object.assign({}, v, { product: t.dataset.v, customProduct: false }); setVal(p, null, next); queueDraft(p); render(true); break; }
     case "unused": v.unused = t.checked; setVal(p, null, v); queueDraft(p); render(true); break;
     case "draw": {
@@ -667,7 +680,6 @@ document.addEventListener("input", e => {
   const v = val(p);
   fillDefaults(p, v);
   switch (b) {
-    case "voicecustom": v.product = t.value; break;
     case "wall": v.text = t.value; break;
     case "sortdesc": v.desc[+t.dataset.i] = t.value; break;
     case "jbasis": v.rows[+t.dataset.i] = Object.assign({}, v.rows[+t.dataset.i], { basis: t.value }); break;
@@ -692,7 +704,7 @@ document.addEventListener("input", e => {
   queueDraft(p, part);
   if (t.tagName === "SELECT") render(true); else refreshButtons();
 });
-document.addEventListener("change", e => { if (e.target.dataset.bind === "voicecustom") { render(true); return; } if (e.target.tagName === "SELECT" && e.target.dataset.bind) { /* input 已處理 */ } });
+document.addEventListener("change", e => { if (e.target.tagName === "SELECT" && e.target.dataset.bind) { /* input 已處理 */ } });
 /* 打字時不重畫整頁，只更新送出按鈕能不能按 */
 function refreshButtons() {
   if (composing) return;
