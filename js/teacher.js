@@ -182,8 +182,12 @@ function pendingAlerts() {
 }
 function classTab(p) {
   const pages = L().pages, i = pages.findIndex(x => x.id === p.id), x = PS(p.id);
-  let h = `<div class="t-now"><span class="small muted mono">${p.id}・${esc(p.time)}　第 ${i + 1} / ${pages.length} 頁</span><span class="t">${esc(p.title)}</span><span class="small muted">投影和全班平板都在這一頁</span></div>`;
-  h += `<div class="t-nav"><button class="btn" data-act="go" data-v="${pages[i - 1] ? pages[i - 1].id : ""}" ${dis(i > 0)}>上一頁</button><button class="btn primary" data-act="go" data-v="${pages[i + 1] ? pages[i + 1].id : ""}" ${dis(i < pages.length - 1)}>下一頁</button></div>`;
+  // 備用頁（optional）不排進上一頁／下一頁，要用時從下方「備用頁」點進去
+  const main = pages.filter(q => !q.optional), spare = pages.filter(q => q.optional);
+  const prevP = pages.slice(0, i).reverse().find(q => !q.optional), nextP = pages.slice(i + 1).find(q => !q.optional);
+  const where = p.optional ? "備用頁" : `第 ${main.indexOf(p) + 1} / ${main.length} 頁`;
+  let h = `<div class="t-now"><span class="small muted mono">${p.id}・${esc(p.time)}　${where}</span><span class="t">${esc(p.title)}</span><span class="small muted">投影和全班平板都在這一頁</span></div>`;
+  h += `<div class="t-nav"><button class="btn" data-act="go" data-v="${prevP ? prevP.id : ""}" ${dis(!!prevP)}>上一頁</button><button class="btn primary" data-act="go" data-v="${nextP ? nextP.id : ""}" ${dis(!!nextP)}>下一頁</button></div>`;
   h += controls(p, x);
   if (answerable(p)) h += `<details class="box"><summary>重設這一頁</summary><div class="stack" style="margin-top:8px"><p class="small">清空這一頁所有作答${p.type === "sort" ? "和搶答次數" : ""}，頁面回到「還沒開始」。學生不用重新登入。</p><button class="btn stop" data-act="resetpage">重設 ${esc(p.id)}</button></div></details>`;
   const notes = notesFor(p);
@@ -191,7 +195,9 @@ function classTab(p) {
   h += `<div class="t-sec"><h3>計時</h3><div class="pillset">${[[30, "30 秒"], [45, "45 秒"], [60, "1 分"], [120, "2 分"], [180, "3 分"], [300, "5 分"], [360, "6 分"], [480, "8 分"]].map(([v, l]) => `<button data-act="timer" data-v="${v}">${l}</button>`).join("")}<button data-act="timer" data-v="0">清除</button></div></div>`;
   h += `<div class="t-sec"><h3>${p.scope === "g" ? "各組進度" : "作答進度"}</h3>${progress(p)}</div>`;
   if (p.scope === "g") h += repsBox(p);
-  h += `<div class="t-sec"><h3>跳到其他頁</h3><div class="plist">${pages.map(q => `<button data-act="go" data-v="${q.id}" aria-current="${q.id === p.id}"><span class="n">${q.id}</span>${esc(q.title)}${PS(q.id).open ? ` <span class="chip ok">作答中</span>` : ""}</button>`).join("")}</div></div>`;
+  const plist = list => `<div class="plist">${list.map(q => `<button data-act="go" data-v="${q.id}" aria-current="${q.id === p.id}"><span class="n">${q.id}</span>${esc(q.title)}${PS(q.id).open ? ` <span class="chip ok">作答中</span>` : ""}</button>`).join("")}</div>`;
+  h += `<div class="t-sec"><h3>跳到其他頁</h3>${plist(main)}</div>`;
+  if (spare.length) h += `<div class="t-sec"><h3>備用頁</h3><p class="small muted">按「下一頁」不會經過這幾頁，時間夠再點進去。</p>${plist(spare)}</div>`;
   return h;
 }
 function controls(p, x) {
@@ -251,12 +257,13 @@ function moderation(p) {
 }
 function aiControls() {
   const bk = (T.priv && T.priv["2-8"] && T.priv["2-8"].backup) || {};
+  const on = activeSeats();
   return `<div class="t-sec"><h3>各組 AI 狀況</h3><div class="t-list">${gids().map(g => {
     const r = groupResponse(T.responses, "2-8", g); const ai = (r && r.data && r.data.ai) || {};
     const prod = T.backupProduct[g] || productOf(g) || PRODUCTS[0];
     const held = st().hold && st().hold[g];
     return `<div class="it" style="flex-direction:column;align-items:stretch">
-      <div class="row"><b>第 ${g} 組</b><span class="small muted">AI 操作員 ${aiOf(g) || "—"} 號</span><span class="spacer"></span>${ai.handed ? `<span class="chip ok">已交給全組</span>` : ai.raw || (ai.lines || []).length ? `<span class="chip warn">貼上中</span>` : `<span class="chip">還沒貼</span>`}${r && r.sent ? `<span class="chip ok">已送出判斷</span>` : ""}</div>
+      <div class="row"><b>第 ${g} 組</b><span class="small muted">AI 操作員</span><select data-bind="aiop" data-g="${g}" style="width:auto" aria-label="第 ${g} 組 AI 操作員">${(groupSeats(groupsMap())[g] || []).map(s => `<option value="${s}" ${aiOf(g) === s ? "selected" : ""}>${s} 號${on.includes(s) ? "" : "（未登入）"}</option>`).join("")}</select><span class="spacer"></span>${ai.handed ? `<span class="chip ok">已交給全組</span>` : ai.raw || (ai.lines || []).length ? `<span class="chip warn">貼上中</span>` : `<span class="chip">還沒貼</span>`}${r && r.sent ? `<span class="chip ok">已送出判斷</span>` : ""}</div>
       <div class="row"><select data-bind="bkprod" data-g="${g}" style="flex:1;min-width:0">${Object.keys(bk).map(k => `<option ${k === prod ? "selected" : ""}>${esc(k)}</option>`).join("")}</select><button class="btn sm" data-act="backup" data-g="${g}">貼上備用回答</button></div>
       <div class="row"><button class="btn sm ghost" data-act="aireopen" data-g="${g}" ${dis(ai.handed)}>重新開放 AI 回答區</button><button class="btn sm ${held ? "gold" : "ghost"}" data-act="hold" data-g="${g}">${held ? "取消暫留" : "讓這組暫留在這一頁"}</button></div></div>`;
   }).join("")}</div></div>`;
@@ -680,6 +687,11 @@ document.addEventListener("change", async e => {
     const reps = JSON.parse(JSON.stringify(T.session.reps || {})); reps[t.dataset.slot] = reps[t.dataset.slot] || {}; reps[t.dataset.slot][t.dataset.g] = +t.value;
     const r = await rpc("lesson_teacher_update", { p_token: T.token, p_id: T.sid, p_rev: null, p_state: null, p_reps: reps });
     toast(r && r.ok ? `第 ${t.dataset.g} 組改由 ${t.value} 號送出` : "沒有成功"); await refresh();
+  }
+  if (t.dataset.bind === "aiop") {
+    const ai = Object.assign({}, T.session.ai_ops || {}); ai[t.dataset.g] = +t.value;
+    const r = await rpc("lesson_teacher_update", { p_token: T.token, p_id: T.sid, p_rev: null, p_state: null, p_ai: ai });
+    toast(r && r.ok ? `第 ${t.dataset.g} 組的 AI 操作員改成 ${t.value} 號` : "沒有成功"); await refresh();
   }
   if (t.dataset.bind === "form" && t.tagName === "SELECT") render(true);
 });
